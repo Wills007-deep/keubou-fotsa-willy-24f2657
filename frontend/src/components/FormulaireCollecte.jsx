@@ -30,7 +30,10 @@ function MapClick({ onLocationSelect }) {
   return null;
 }
 
+import { useTheme } from '../context/ThemeContext';
+
 export default function FormulaireCollecte() {
+  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const { id: collecteId } = useParams();
   const [isEdit, setIsEdit] = useState(!!collecteId);
@@ -298,7 +301,7 @@ export default function FormulaireCollecte() {
               </div>
               <div className="h-64 relative z-0">
                 <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
                   <MapClick onLocationSelect={handleLocationSelect} />
                   <MapRecenter center={mapCenter} />
                   {selectedLocation && <Marker position={selectedLocation} />}

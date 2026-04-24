@@ -16,7 +16,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+import { useTheme } from '../context/ThemeContext';
+
 export default function Dashboard() {
+  const { isDarkMode } = useTheme();
   const [stats, setStats] = useState(null);
   const [collectes, setCollectes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,10 +35,12 @@ export default function Dashboard() {
         axios.get(`${API_BASE}/stats/`),
         axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`)
       ]);
-      setStats(statsRes.data);
-      setCollectes(collectesRes.data);
+      setStats(statsRes.data || {});
+      setCollectes(collectesRes.data || []);
     } catch (error) {
       console.error('Erreur API:', error);
+      setStats({}); 
+      setCollectes([]);
     } finally {
       setLoading(false);
     }
@@ -90,13 +95,13 @@ export default function Dashboard() {
     }));
   };
 
-  if (loading || !stats || !collectes) {
+  if (loading) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-white dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4 text-center">
            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
            <div className="text-emerald-900 dark:text-emerald-100 font-bold animate-pulse text-sm uppercase tracking-widest">Génération des analyses en cours...</div>
-           <p className="text-xs text-slate-400">Connexion au serveur : {API_BASE}</p>
+           <p className="text-xs text-slate-400 font-mono">Connexion au serveur : {API_BASE}</p>
         </div>
       </div>
     );
@@ -233,8 +238,8 @@ export default function Dashboard() {
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="font-h1 text-h1 text-on-secondary-fixed-variant mb-1">Centre Analytique</h1>
-            <p className="font-body-md text-on-surface-variant">Intelligence de précision • Données consolidées</p>
+            <h1 className="font-h1 text-h1 text-slate-900 dark:text-white mb-1">Centre Analytique</h1>
+            <p className="font-body-md text-slate-500 dark:text-slate-400">Intelligence de précision • Données consolidées</p>
           </div>
           <div className="flex gap-3">
             <button 

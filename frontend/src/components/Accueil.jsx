@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const API_BASE = "http://localhost:8000/api";
 
@@ -20,10 +21,12 @@ export default function Accueil() {
         axios.get(`${API_BASE}/stats/`),
         axios.get(`${API_BASE}/collectes/?skip=0&limit=100`)
       ]);
-      setStats(statsRes.data);
-      setCollectes(collectesRes.data);
+      setStats(statsRes.data || {});
+      setCollectes(collectesRes.data || []);
     } catch (error) {
       console.error('Erreur:', error);
+      setStats({});
+      setCollectes([]);
     } finally {
       setLoading(false);
     }
@@ -60,24 +63,24 @@ export default function Accueil() {
 
   return (
     <div className="w-full">
-      {/* Hero Section */}
+      {/* ... Hero Section unchanged ... */}
       <section className="grid grid-cols-12 gap-gutter mb-xl">
         <div className="col-span-12 lg:col-span-7 flex flex-col justify-center">
-          <h1 className="font-h1 text-h1 text-on-surface mb-md">Nourrir demain avec la précision d'aujourd'hui.</h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-lg">
+          <h1 className="font-h1 text-h1 text-slate-900 dark:text-white mb-md">Nourrir demain avec la précision d'aujourd'hui.</h1>
+          <p className="font-body-lg text-body-lg text-slate-600 dark:text-slate-300 max-w-2xl mb-lg">
             Bienvenue dans votre centre de pilotage AgroAnalytics. Optimisez vos rendements grâce à une collecte de données précise et une analyse saisonnière en temps réel.
           </p>
           <div className="flex gap-md">
             <Link 
               to="/formulaire"
-              className="bg-primary-container text-on-primary font-bold px-8 py-4 rounded-16 shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
+              className="bg-emerald-900 dark:bg-emerald-600 text-white font-bold px-8 py-4 rounded-16 shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>add_circle</span>
               Nouvelle Collecte
             </Link>
             <Link 
               to="/dashboard"
-              className="border border-primary-container text-primary-container font-semibold px-8 py-4 rounded-16 hover:bg-emerald-50 transition-colors flex items-center"
+              className="border border-emerald-900 text-emerald-900 dark:border-emerald-400 dark:text-emerald-400 font-semibold px-8 py-4 rounded-16 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors flex items-center"
             >
               Voir les analyses
             </Link>
@@ -159,20 +162,33 @@ export default function Accueil() {
         <div className="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 p-lg rounded-16 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
           <div className="flex justify-between items-center mb-lg">
             <h3 className="font-h3 text-h3 text-emerald-900 dark:text-emerald-100">Activité de Collecte</h3>
-            <div className="px-4 py-2 bg-emerald-50 dark:bg-slate-800 rounded-lg font-body-md text-emerald-800 dark:text-emerald-200 font-bold">
+            <div className="px-4 py-2 bg-emerald-50 dark:bg-slate-800 rounded-lg font-body-md text-emerald-800 dark:text-emerald-200 font-bold text-xs uppercase tracking-widest">
               Derniers 7 jours
             </div>
           </div>
-          <div className="h-64 w-full bg-slate-50 dark:bg-slate-950/50 rounded-xl flex items-end justify-between p-lg border border-slate-100 dark:border-slate-800">
-              {activityData.map((d, i) => (
-                <div key={i} className="flex flex-col items-center gap-3 w-full">
-                  <div 
-                    className="w-8 bg-emerald-500 dark:bg-emerald-600 rounded-t-lg transition-all duration-1000" 
-                    style={{ height: `${Math.max(d.count * 40, 10)}px`, opacity: d.count > 0 ? 1 : 0.2 }}
-                  ></div>
-                  <span className="font-label-caps text-[10px] text-slate-400">{d.day}</span>
-                </div>
-              ))}
+          <div className="h-64 w-full bg-slate-50/50 dark:bg-slate-950/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={activityData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="day" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} 
+                    dy={10}
+                  />
+                  <YAxis hide />
+                  <Tooltip 
+                    cursor={{fill: 'rgba(16, 185, 129, 0.05)'}}
+                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+                  />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={32}>
+                    {activityData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.count > 0 ? '#10b981' : '#e2e8f0'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
           </div>
         </div>
         <div className="col-span-12 lg:col-span-4 space-y-gutter">
