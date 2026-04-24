@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
+import { getRegionFromLocation } from '../utils/locationMapping';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -60,6 +61,7 @@ export default function FormulaireCollecte() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [recentCollectes, setRecentCollectes] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [cropOptions] = useState(['Maïs', 'Riz', 'Manioc', 'Cacao', 'Banane', 'Café', 'Palmier à huile', 'Hévéa', 'Autre']);
   const [soilOptions] = useState(['Inconnu', 'Argileux', 'Sablonneux', 'Limoneux', 'Ferralitique', 'Volcanique', 'Humifère']);
   const [regionOptions] = useState(['Centre', 'Littoral', 'Ouest', 'Nord', 'Sud', 'Est', 'Adamaoua', 'Extrême-Nord', 'Nord-Ouest', 'Sud-Ouest']);
@@ -128,6 +130,34 @@ export default function FormulaireCollecte() {
     setSelectedLocation([lat, lng]);
   };
 
+  const handleSearchLocation = async () => {
+    if (!searchQuery) return;
+    try {
+      const response = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      if (response.data && response.data.length > 0) {
+        const { lat, lon, display_name } = response.data[0];
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+        const placeName = display_name.split(',')[0];
+        
+        // Auto-detect region from location
+        const detectedRegion = getRegionFromLocation(placeName) || getRegionFromLocation(display_name);
+        
+        setMapCenter([latitude, longitude]);
+        setFormData(prev => ({ 
+          ...prev, 
+          latitude, 
+          longitude, 
+          nom_lieu: prev.nom_lieu || placeName,
+          region: detectedRegion || prev.region // Auto-populate region if detected
+        }));
+        setSelectedLocation([latitude, longitude]);
+      }
+    } catch (err) {
+      console.error("Search failed", err);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -181,7 +211,7 @@ export default function FormulaireCollecte() {
 
   return (
     <div className="w-full">
-      <section className="p-8 max-w-6xl mx-auto">
+      <section className="p-4 md:p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h2 className="font-h2 text-h2 text-emerald-900 mb-2">{isEdit ? 'Modifier la Collecte' : 'Nouvelle Collecte AgroAnalytics'}</h2>
           <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour améliorer vos futurs rendements.</p>
@@ -195,7 +225,7 @@ export default function FormulaireCollecte() {
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">1</div>
                 <h3 className="font-h3 text-h3 text-emerald-900">Culture & Plantation</h3>
               </div>
-              <div className="grid grid-cols-2 gap-md mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400">NOM PLANTATION</label>
                   <input name="plantation_name" value={formData.plantation_name} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Ferme de Njombé" />
@@ -256,7 +286,7 @@ export default function FormulaireCollecte() {
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">3</div>
                 <h3 className="font-h3 text-h3 text-emerald-900">Variables de Contrôle & Récolte</h3>
               </div>
-              <div className="grid grid-cols-3 gap-md mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-8">
                 <div className="space-y-sm">
                   <label className="font-label-caps text-xs text-slate-400">SURFACE (HA)</label>
                   <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" />
@@ -270,7 +300,7 @@ export default function FormulaireCollecte() {
                   <input name="volume_eau" value={formData.volume_eau} onChange={handleInputChange} type="number" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-primary font-bold">RENDEMENT FINAL (TONS)</label>
                   <input name="rendement_final" value={formData.rendement_final} onChange={handleInputChange} type="number" className="w-full px-4 py-4 rounded-xl border-2 border-primary/20 bg-emerald-50/30 text-xl font-bold text-primary" />
@@ -282,9 +312,9 @@ export default function FormulaireCollecte() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-md pt-4">
-              <button type="button" onClick={() => navigate('/collectes')} className="px-8 py-4 text-slate-400 font-bold hover:text-slate-600">Annuler</button>
-              <button type="submit" disabled={loading} className="bg-primary text-white px-12 py-4 rounded-2xl font-bold text-lg shadow-lg hover:brightness-110 active:scale-95 disabled:opacity-50">
+            <div className="flex flex-col sm:flex-row justify-end gap-md pt-4">
+              <button type="button" onClick={() => navigate('/collectes')} className="px-8 py-4 text-slate-400 font-bold hover:text-slate-600 order-2 sm:order-1">Annuler</button>
+              <button type="submit" disabled={loading} className="bg-primary text-white px-12 py-4 rounded-2xl font-bold text-lg shadow-lg hover:brightness-110 active:scale-95 disabled:opacity-50 order-1 sm:order-2">
                 {loading ? 'Enregistrement...' : 'Valider la Collecte'}
               </button>
             </div>
@@ -293,11 +323,33 @@ export default function FormulaireCollecte() {
           {/* Right Sidebar */}
           <div className="col-span-12 lg:col-span-4 space-y-gutter">
             <div className="bg-white rounded-[16px] overflow-hidden shadow-sm border border-emerald-900/5">
-              <div className="p-4 bg-emerald-50 border-b border-emerald-900/5 flex justify-between items-center">
-                <h4 className="font-bold text-emerald-900 text-sm">Géolocalisation</h4>
-                <button type="button" onClick={getCurrentLocation} className="text-primary hover:bg-white p-1 rounded-full transition-colors">
-                   <span className="material-symbols-outlined text-sm">my_location</span>
-                </button>
+              <div className="p-4 bg-emerald-50 border-b border-emerald-900/5 flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold text-emerald-900 text-sm">Géolocalisation</h4>
+                  <button type="button" onClick={getCurrentLocation} title="Ma position actuelle" className="text-primary hover:bg-white p-1 rounded-full transition-colors">
+                     <span className="material-symbols-outlined text-sm">my_location</span>
+                  </button>
+                </div>
+                <div className="relative flex gap-2">
+                  <div className="relative flex-1">
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearchLocation(); } }}
+                      placeholder="Rechercher un lieu..."
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-emerald-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                    />
+                    <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSearchLocation}
+                    className="bg-primary text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap"
+                  >
+                    OK
+                  </button>
+                </div>
               </div>
               <div className="h-64 relative z-0">
                 <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>

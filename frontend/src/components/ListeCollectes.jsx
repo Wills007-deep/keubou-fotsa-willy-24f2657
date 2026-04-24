@@ -139,8 +139,8 @@ export default function ListeCollectes() {
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Culture</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Région</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plantation</th>
+                <th className="hidden md:table-cell px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Région</th>
+                <th className="hidden lg:table-cell px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plantation</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Rendement</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"></th>
               </tr>
@@ -156,12 +156,12 @@ export default function ListeCollectes() {
                       <span className="font-bold text-emerald-900 dark:text-emerald-100 text-sm">{c.culture_type}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{c.region || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{c.plantation_name || '-'}</td>
+                  <td className="hidden md:table-cell px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{c.region || '-'}</td>
+                  <td className="hidden lg:table-cell px-6 py-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{c.plantation_name || '-'}</td>
                   <td className="px-6 py-4 text-right">
                     <span className="font-bold text-emerald-900 dark:text-emerald-100">{c.rendement_final}</span> <span className="text-[10px] text-slate-400">T/HA</span>
                   </td>
-                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-6 py-4 text-right md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <button onClick={() => navigate(`/formulaire/${c.id_collecte}`)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors">
                       <span className="material-symbols-outlined text-sm">edit</span>
                     </button>

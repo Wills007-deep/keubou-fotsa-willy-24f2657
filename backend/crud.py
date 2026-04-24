@@ -3,17 +3,21 @@ import models
 import uuid
 from datetime import datetime
 
-def get_collecte(db: Session, collecte_id: str):
-    return db.query(models.Collecte).filter(models.Collecte.id_collecte == collecte_id).first()
+def get_collecte(db: Session, collecte_id: str, user_id: str):
+    return db.query(models.Collecte).filter(
+        models.Collecte.id_collecte == collecte_id,
+        models.Collecte.user_id == user_id
+    ).first()
 
-def get_collectes(db: Session, skip: int = 0, limit: int = 100):
-    # On trie par date de création pour voir les plus récentes en haut
-    return db.query(models.Collecte).order_by(models.Collecte.created_at.desc()).offset(skip).limit(limit).all()
+def get_collectes(db: Session, user_id: str, skip: int = 0, limit: int = 100):
+    return db.query(models.Collecte).filter(
+        models.Collecte.user_id == user_id
+    ).order_by(models.Collecte.created_at.desc()).offset(skip).limit(limit).all()
 
-def create_collecte(db: Session, collecte: models.CollecteCreate):
-    # On s'assure de générer un ID unique et une date propre ici au cas où
+def create_collecte(db: Session, collecte: models.CollecteCreate, user_id: str):
     db_collecte = models.Collecte(
         id_collecte=str(uuid.uuid4()),
+        user_id=user_id,
         culture_type=collecte.culture_type,
         plantation_name=collecte.plantation_name,
         operator=collecte.operator,
@@ -35,8 +39,12 @@ def create_collecte(db: Session, collecte: models.CollecteCreate):
     db.refresh(db_collecte)
     return db_collecte
 
-def update_collecte(db: Session, collecte_id: str, collecte_update: models.CollecteUpdate):
-    db_collecte = db.query(models.Collecte).filter(models.Collecte.id_collecte == collecte_id).first()
+def update_collecte(db: Session, collecte_id: str, collecte_update: models.CollecteUpdate, user_id: str):
+    db_collecte = db.query(models.Collecte).filter(
+        models.Collecte.id_collecte == collecte_id,
+        models.Collecte.user_id == user_id
+    ).first()
+    
     if not db_collecte:
         return None
     
@@ -50,8 +58,12 @@ def update_collecte(db: Session, collecte_id: str, collecte_update: models.Colle
     db.refresh(db_collecte)
     return db_collecte
 
-def delete_collecte(db: Session, collecte_id: str):
-    db_collecte = db.query(models.Collecte).filter(models.Collecte.id_collecte == collecte_id).first()
+def delete_collecte(db: Session, collecte_id: str, user_id: str):
+    db_collecte = db.query(models.Collecte).filter(
+        models.Collecte.id_collecte == collecte_id,
+        models.Collecte.user_id == user_id
+    ).first()
+    
     if not db_collecte:
         return None
     
@@ -59,5 +71,6 @@ def delete_collecte(db: Session, collecte_id: str):
     db.commit()
     return db_collecte
 
-def get_all_collectes_for_stats(db: Session):
-    return db.query(models.Collecte).all()
+def get_all_collectes_for_stats(db: Session, user_id: str):
+    return db.query(models.Collecte).filter(models.Collecte.user_id == user_id).all()
+

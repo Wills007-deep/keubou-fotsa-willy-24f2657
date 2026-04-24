@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 import pandas as pd
 import numpy as np
 import crud
+import auth
+import models
 from database import get_db
 import io
 
@@ -21,8 +23,8 @@ def remove_outliers(df, column):
     return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
 
 @router.get("/")
-def get_statistics(db: Session = Depends(get_db)):
-    collectes = crud.get_all_collectes_for_stats(db)
+def get_statistics(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    collectes = crud.get_all_collectes_for_stats(db, user_id=current_user.id)
     
     if not collectes or len(collectes) < 2:
         return {
@@ -70,9 +72,10 @@ def get_statistics(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/export")
-def export_data(db: Session = Depends(get_db)):
+def export_data(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     """Module d'Exportation : Génère un fichier CSV pour Excel/SPSS."""
-    collectes = crud.get_all_collectes_for_stats(db)
+    collectes = crud.get_all_collectes_for_stats(db, user_id=current_user.id)
+
     if not collectes:
         raise HTTPException(status_code=404, detail="Aucune donnée à exporter")
         

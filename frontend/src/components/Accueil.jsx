@@ -87,7 +87,7 @@ export default function Accueil() {
           </div>
         </div>
         <div className="col-span-12 lg:col-span-5">
-          <div className="relative h-[400px] w-full rounded-16 overflow-hidden shadow-[0px_4px_20px_rgba(27,67,50,0.08)] bg-emerald-100">
+          <div className="relative h-[250px] md:h-[400px] w-full rounded-16 overflow-hidden shadow-[0px_4px_20px_rgba(27,67,50,0.08)] bg-emerald-100">
             <img 
               alt="Modern Farm" 
               className="w-full h-full object-cover" 
