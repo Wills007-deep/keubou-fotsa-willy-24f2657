@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-const API_BASE = 'http://127.0.0.1:8000/api';
-const COLORS = ['#2d6a4f', '#95d4b3', '#b0f1cc', '#a5d0b9', '#c1ecd4', '#3f6754'];
+const API_BASE = 'http://localhost:8000/api';
+const COLORS = ['#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#064e3b'];
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [collectes, setCollectes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const reportRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -23,7 +35,37 @@ export default function Dashboard() {
       setStats(statsRes.data);
       setCollectes(collectesRes.data);
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur API:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportPDF = async () => {
+    if (!reportRef.current) return;
+    setLoading(true);
+    try {
+      const reportElement = reportRef.current;
+      reportElement.style.display = 'block';
+      
+      const canvas = await html2canvas(reportElement, {
+        scale: 1.5,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      reportElement.style.display = 'none';
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(pdfHeight, 297));
+      pdf.save(`Rapport_AgroAnalytics_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (e) {
+      console.error("PDF Export failed", e);
     } finally {
       setLoading(false);
     }
@@ -48,10 +90,14 @@ export default function Dashboard() {
     }));
   };
 
-  if (loading) {
+  if (loading || !stats || !collectes) {
     return (
-      <div className="w-full">
-        <div className="text-center">Chargement des données...</div>
+      <div className="w-full h-screen flex items-center justify-center bg-white dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-4 text-center">
+           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+           <div className="text-emerald-900 dark:text-emerald-100 font-bold animate-pulse text-sm uppercase tracking-widest">Génération des analyses en cours...</div>
+           <p className="text-xs text-slate-400">Connexion au serveur : {API_BASE}</p>
+        </div>
       </div>
     );
   }
@@ -60,204 +106,295 @@ export default function Dashboard() {
   const avgYield = totalCollectes > 0 
     ? (collectes.reduce((sum, c) => sum + c.rendement_final, 0) / totalCollectes).toFixed(2)
     : 0;
-  const totalSurface = totalCollectes > 0
-    ? collectes.reduce((sum, c) => sum + c.surface, 0).toFixed(1)
+  
+  const correlationVal = stats?.matrice_correlation?.quantite_engrais?.rendement_final ?? 0;
+  const confidenceIndex = (Math.abs(correlationVal) * 100 * Math.min(totalCollectes / 10, 1)).toFixed(1);
+
+  const avgVariance = stats?.moyennes_rendement_par_culture?.length > 0
+    ? (stats.moyennes_rendement_par_culture.reduce((sum, c) => sum + (c.rendement_ecart_type ** 2), 0) / stats.moyennes_rendement_par_culture.length).toFixed(2)
     : 0;
-  const correlationIndex = 0.848;
+  
+  const avgStdDev = Math.sqrt(parseFloat(avgVariance)).toFixed(2);
+
+  const lastUpdate = collectes.length > 0 
+    ? new Date(Math.max(...collectes.map(c => new Date(c.updated_at || c.created_at)))).toLocaleString('fr-FR')
+    : 'N/A';
 
   return (
-    <>
-      <div className="w-full">
-          {/* Dashboard Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h1 className="font-h1 text-h1 text-on-secondary-fixed-variant mb-1">Analyse Descriptive</h1>
-              <p className="font-body-md text-on-surface-variant">Projet INF 232 • Focus sur la performance des rendements agricoles</p>
-            </div>
-            <button className="bg-primary hover:bg-primary-container text-on-primary font-bold px-6 py-3 rounded-[16px] shadow-[0px_4px_20px_rgba(27,67,50,0.15)] flex items-center gap-2 transition-all active:scale-95">
-              <span className="material-symbols-outlined">file_download</span>
-              Exporter le rapport d'analyse
+    <div className="w-full">
+        {/* Hidden Report Template for PDF */}
+        <div ref={reportRef} style={{ display: 'none', width: '900px', padding: '50px', backgroundColor: 'white', color: '#1e293b' }}>
+           <div style={{ borderBottom: '3px solid #065f46', paddingBottom: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h1 style={{ color: '#065f46', fontSize: '32px', fontWeight: '900', margin: 0 }}>RAPPORT DE PERFORMANCE AGRONOMIQUE</h1>
+                <p style={{ color: '#64748b', fontSize: '14px', marginTop: '5px' }}>AgroAnalytics AI Engine • Rapport Généré le {new Date().toLocaleDateString('fr-FR')}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                 <p style={{ fontWeight: 'bold', color: '#065f46', margin: 0, fontSize: '18px' }}>AgroAnalytics</p>
+                 <p style={{ fontSize: '12px', color: '#94a3b8' }}>Intelligence de Précision</p>
+              </div>
+           </div>
+
+           {/* Dashboard Summary in Report */}
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '30px' }}>
+              <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                 <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Rendement Moyen</p>
+                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', margin: 0 }}>{avgYield} t/ha</p>
+              </div>
+              <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                 <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Corrélation</p>
+                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', margin: 0 }}>{correlationVal.toFixed(2)}</p>
+              </div>
+              <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                 <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Variance</p>
+                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', margin: 0 }}>{avgVariance}</p>
+              </div>
+              <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                 <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Écart-type</p>
+                 <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#065f46', margin: 0 }}>{avgStdDev}</p>
+              </div>
+           </div>
+
+           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '40px' }}>
+              <div style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '20px' }}>
+                 <h3 style={{ fontSize: '14px', color: '#065f46', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>CORRÉLATION ENGRAIS / RENDEMENT</h3>
+                 <div style={{ height: '300px', width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis type="number" dataKey="x" name="Engrais" unit="kg" axisLine={false} tickLine={false} />
+                        <YAxis type="number" dataKey="y" name="Rendement" unit="t" axisLine={false} tickLine={false} />
+                        <Scatter name="Parcelles" data={getScatterData()} fill="#10b981" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                 </div>
+              </div>
+              <div style={{ border: '1px solid #f1f5f9', borderRadius: '16px', padding: '20px' }}>
+                 <h3 style={{ fontSize: '14px', color: '#065f46', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>RÉPARTITION DES CULTURES</h3>
+                 <div style={{ height: '300px', width: '100%' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={getCultureDistribution()} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                          {getCultureDistribution().map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                 </div>
+              </div>
+           </div>
+
+           <div style={{ marginBottom: '40px', padding: '25px', backgroundColor: '#f0fdf4', borderRadius: '16px', border: '1px solid #dcfce7' }}>
+              <h2 style={{ color: '#166534', fontSize: '18px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                 Interpretation Analytique
+              </h2>
+              <p style={{ fontSize: '14px', lineHeight: '1.8', color: '#374151' }}>
+                L'analyse des données révèle une corrélation de <span style={{fontWeight:'bold'}}>{correlationVal.toFixed(2)}</span>. 
+                {correlationVal > 0.7 
+                  ? "Cette valeur indique que le rendement est fortement dépendant de la fertilisation. L'optimisation des intrants est le levier principal de croissance." 
+                  : "La corrélation est modérée, ce qui suggère que d'autres variables (qualité du sol, irrigation) influencent significativement les résultats."}
+                La variance de <span style={{fontWeight:'bold'}}>{avgVariance}</span> indique {parseFloat(avgVariance) > 10 ? "une hétérogénéité importante entre les parcelles, nécessitant une approche ciblée." : "une relative homogénéité des rendements sur l'exploitation."}
+              </p>
+           </div>
+
+           <div style={{ marginBottom: '40px' }}>
+              <h3 style={{ fontSize: '16px', color: '#065f46', marginBottom: '15px', borderLeft: '4px solid #10b981', paddingLeft: '10px' }}>HISTORIQUE COMPLET DES COLLECTES</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                 <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                       <th style={{ textAlign: 'left', padding: '10px' }}>DATE</th>
+                       <th style={{ textAlign: 'left', padding: '10px' }}>CULTURE</th>
+                       <th style={{ textAlign: 'left', padding: '10px' }}>RÉGION</th>
+                       <th style={{ textAlign: 'left', padding: '10px' }}>SOL</th>
+                       <th style={{ textAlign: 'right', padding: '10px' }}>SURFACE</th>
+                       <th style={{ textAlign: 'right', padding: '10px' }}>ENGRAIS</th>
+                       <th style={{ textAlign: 'right', padding: '10px' }}>RENDEMENT</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {collectes.map((c, i) => (
+                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                          <td style={{ padding: '10px', fontWeight: 'bold' }}>{c.culture_type}</td>
+                          <td style={{ padding: '10px' }}>{c.region || 'N/A'}</td>
+                          <td style={{ padding: '10px' }}>{c.soil_type || 'N/A'}</td>
+                          <td style={{ padding: '10px', textAlign: 'right' }}>{c.surface} ha</td>
+                          <td style={{ padding: '10px', textAlign: 'right' }}>{c.quantite_engrais} kg</td>
+                          <td style={{ padding: '10px', textAlign: 'right', color: '#059669', fontWeight: 'bold' }}>{c.rendement_final} t/ha</td>
+                       </tr>
+                    ))}
+                 </tbody>
+              </table>
+           </div>
+
+           <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8', fontSize: '10px' }}>
+              Document confidentiel généré par AgroAnalytics Engine • © 2026 AgroAnalytics
+           </div>
+        </div>
+        {/* Dashboard Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="font-h1 text-h1 text-on-secondary-fixed-variant mb-1">Centre Analytique</h1>
+            <p className="font-body-md text-on-surface-variant">Intelligence de précision • Données consolidées</p>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={exportPDF}
+              className="bg-emerald-50 text-emerald-800 font-bold px-6 py-3 rounded-xl border border-emerald-200 flex items-center gap-2 hover:bg-emerald-100 transition-all active:scale-95 shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[20px]">description</span>
+              Rapport PDF
             </button>
+            <a 
+              href={`${API_BASE}/stats/export`}
+              className="bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 hover:brightness-110 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[20px]">table_view</span>
+              Export Excel
+            </a>
           </div>
+        </div>
 
-          {/* Filters Bar */}
-          <div className="bg-white rounded-[16px] p-4 mb-8 shadow-[0px_4px_20px_rgba(27,67,50,0.08)] flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2 px-3 py-2 bg-surface rounded-xl border border-outline-variant">
-              <span className="material-symbols-outlined text-emerald-800">filter_list</span>
-              <span className="font-label-caps text-label-caps text-on-surface-variant uppercase">Filtres</span>
-            </div>
-            <select className="bg-surface border-outline-variant rounded-xl text-sm font-medium text-on-surface focus:ring-primary focus:border-primary px-4 py-2">
-              <option>Type de culture: Tous</option>
-              <option>Maïs</option>
-              <option>Blé</option>
-              <option>Soja</option>
-            </select>
-            <select className="bg-surface border-outline-variant rounded-xl text-sm font-medium text-on-surface focus:ring-primary focus:border-primary px-4 py-2">
-              <option>Période: 12 derniers mois</option>
-              <option>Saison 2023</option>
-              <option>Saison 2022</option>
-            </select>
-            <div className="ml-auto flex gap-2">
-              <span className="bg-on-secondary-container text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                <span className="h-2 w-2 bg-white rounded-full"></span> Temps réel
-              </span>
+        {/* Stats Summary Cards */}
+        <div className="grid grid-cols-12 gap-6 mb-8">
+          <div className="col-span-12 md:col-span-3 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10 border-l-4 border-primary">
+            <p className="font-label-caps text-[10px] text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-widest">RENDEMENT MOYEN</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{avgYield}</span>
+              <span className="text-xs text-slate-400">t/ha</span>
             </div>
           </div>
 
-          {/* Bento Grid Dashboard */}
-          <div className="grid grid-cols-12 gap-gutter">
-            {/* Main Scatter Plot Card */}
-            <div className="col-span-12 lg:col-span-8 bg-white rounded-[16px] p-lg shadow-[0px_4px_20px_rgba(27,67,50,0.08)] flex flex-col gap-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-h3 text-h3 text-on-secondary-fixed-variant">Corrélation Rendement vs Fertilisants</h3>
-                <div className="flex gap-2">
-                  <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">info</span>
-                  <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">more_vert</span>
+          <div className="col-span-12 md:col-span-3 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
+            <p className="font-label-caps text-[10px] text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-widest">INDICE DE CONFIANCE</p>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{confidenceIndex}%</span>
+              <span className="material-symbols-outlined text-emerald-500 text-sm">verified</span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+               <div className="bg-emerald-500 h-full rounded-full transition-all duration-1000" style={{width: `${confidenceIndex}%`}}></div>
+            </div>
+          </div>
+
+          <div className="col-span-12 md:col-span-3 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
+            <p className="font-label-caps text-[10px] text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-widest">COLLECTES TOTALES</p>
+            <span className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{totalCollectes}</span>
+          </div>
+
+          <div className="col-span-12 md:col-span-3 bg-emerald-900 dark:bg-emerald-600 text-white rounded-[16px] p-6 shadow-lg relative overflow-hidden">
+             <div className="relative z-10">
+                <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mb-1">DERNIÈRE MISE À JOUR</p>
+                <p className="text-sm font-bold">{lastUpdate}</p>
+                <div className="mt-2 flex items-center gap-1 text-[10px]">
+                   <span className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse"></span>
+                   SYSTÈME EN LIGNE
                 </div>
-              </div>
-              <div className="flex-grow bg-emerald-50/20 rounded-[16px] min-h-[350px] relative overflow-hidden p-8">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <defs>
-                      <linearGradient id="scatterGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0f5238" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#0f5238" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(27,67,50,0.1)" />
-                    <XAxis 
-                      type="number" 
-                      dataKey="x" 
-                      name="Engrais" 
-                      unit="kg" 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{fill: '#707973', fontSize: 12}}
-                    />
-                    <YAxis 
-                      type="number" 
-                      dataKey="y" 
-                      name="Rendement" 
-                      unit="t" 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{fill: '#707973', fontSize: 12}}
-                    />
-                    <Tooltip 
-                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}
-                      cursor={{ strokeDasharray: '3 3' }} 
-                    />
-                    <Scatter 
-                      name="Données" 
-                      data={getScatterData()} 
-                      fill="#0f5238" 
-                      line={{stroke: '#2d6a4f', strokeWidth: 2}}
-                      shape="circle"
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
+             </div>
+             <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-[80px] opacity-10">update</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-8 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
+            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-6 flex items-center gap-2">
+               <span className="material-symbols-outlined text-emerald-500">analytics</span> Corrélation Rendement / Engrais
+            </h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#f1f5f9'} />
+                  <XAxis type="number" dataKey="x" name="Engrais" unit="kg" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                  <YAxis type="number" dataKey="y" name="Rendement" unit="t" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                  <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                  <Scatter name="Parcelles" data={getScatterData()} fill="#10b981" />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Distribution Card */}
+          <div className="col-span-12 lg:col-span-4 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
+            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-6 uppercase text-xs tracking-widest">Répartition des Cultures</h3>
+            <div className="h-[350px] relative flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={getCultureDistribution()} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
+                    {getCultureDistribution().map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute text-center">
+                 <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{totalCollectes}</p>
+                 <p className="text-[10px] text-slate-400">TOTAL</p>
               </div>
             </div>
+          </div>
 
-            {/* Histogram Card */}
-            <div className="col-span-12 lg:col-span-4 bg-white rounded-[16px] p-lg shadow-[0px_4px_20px_rgba(27,67,50,0.08)] flex flex-col gap-4">
-              <h3 className="font-h3 text-h3 text-on-secondary-fixed-variant">Distribution des Cultures</h3>
-              <div className="flex-grow bg-emerald-50/20 rounded-[16px] p-6 flex items-center justify-center min-h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={getCultureDistribution()}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={8}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {getCultureDistribution().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute flex flex-col items-center">
-                   <span className="text-3xl font-bold text-primary">{totalCollectes}</span>
-                   <span className="text-[10px] uppercase font-bold text-slate-400">Total</span>
-                </div>
-              </div>
+          {/* Map Card */}
+          <div className="col-span-12 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10 overflow-hidden flex flex-col min-h-[400px]">
+            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4 uppercase text-xs tracking-widest flex items-center gap-2">
+               <span className="material-symbols-outlined text-emerald-500">map</span> Vue Géospatiale des Exploitations
+            </h3>
+            <div className="flex-grow relative z-0 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800">
+              <MapContainer center={[4, 12]} zoom={6} style={{ height: '400px', width: '100%' }}>
+                <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+                {collectes.filter(c => c.latitude && c.longitude).map(c => (
+                  <Marker key={c.id_collecte} position={[c.latitude, c.longitude]}>
+                    <Popup>
+                      <div className="p-1">
+                        <p className="font-bold text-emerald-800">{c.culture_type}</p>
+                        <p className="text-[10px] text-slate-500">{c.plantation_name || c.nom_lieu}</p>
+                        <p className="text-xs font-bold mt-1">{c.rendement_final} T/HA</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
             </div>
+          </div>
 
-            {/* KPIs Section */}
-            <div className="col-span-12 md:col-span-4 bg-white rounded-[16px] p-lg shadow-[0px_4px_20px_rgba(27,67,50,0.08)] border-l-4 border-primary">
-              <p className="font-label-caps text-label-caps text-on-surface-variant mb-2">RENDEMENT MOYEN</p>
-              <div className="flex items-baseline gap-2">
-                <span className="font-data-display text-data-display text-on-secondary-fixed-variant">{avgYield}</span>
-                <span className="font-body-md text-on-surface-variant">t/ha</span>
+          <div className="col-span-12 bg-white dark:bg-slate-900 rounded-[16px] p-8 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500">
+                 <span className="material-symbols-outlined">psychology</span>
               </div>
-              <div className="mt-4 flex items-center gap-1 text-on-secondary-fixed-variant text-sm font-bold">
-                <span className="material-symbols-outlined text-sm">trending_up</span>
-                +12.5% vs an dernier
-              </div>
+              <h3 className="font-bold text-emerald-900 dark:text-emerald-100">Interprétation AgroAnalytics AI</h3>
             </div>
-
-            <div className="col-span-12 md:col-span-4 bg-white rounded-[16px] p-lg shadow-[0px_4px_20px_rgba(27,67,50,0.08)]">
-              <p className="font-label-caps text-label-caps text-on-surface-variant mb-2">INDICE DE CONFIANCE</p>
-              <div className="flex items-baseline gap-2">
-                <span className="font-data-display text-data-display text-on-secondary-fixed-variant">{(correlationIndex * 100).toFixed(1)}</span>
-                <span className="font-body-md text-on-surface-variant">%</span>
-              </div>
-              <div className="w-full h-2 bg-surface-variant rounded-full mt-4 overflow-hidden">
-                <div className="bg-primary h-full" style={{ width: `${correlationIndex * 100}%` }}></div>
-              </div>
-            </div>
-
-            <div className="col-span-12 md:col-span-4 bg-white rounded-[16px] p-lg shadow-[0px_4px_20px_rgba(27,67,50,0.08)] flex items-center justify-center relative overflow-hidden group">
-              <img 
-                alt="field visual" 
-                className="absolute inset-0 w-full h-full object-cover opacity-10 group-hover:scale-110 transition-transform duration-700" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5yzQ0GafbYSs9tU_ZvhkwfNM6P_RHLlSDhIEOjsXBJnqeJCF3EMFGgoJ_soncY9konoDew_ExnbwBKy51RLU4kRxLhEM3JA_-eE96-lSd5yVFYIUybkWwicMpxk-oeA2Acdugzy3Qv7tpatQxR38MLpw2cIL38msqVLI9sOvayQSIIO3rd7MQLxCeJm5NDUyx1dWPWLtmETJn0EzvxYoGpNIVlnwfurswgTtX-ggfZm7SV_aVI-ZjmH9banQbZZKNvOo5mD7vZY_K"
-              />
-              <div className="relative z-10 text-center">
-                <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">TOTAL PARCELLES</p>
-                <span className="font-data-display text-data-display text-on-secondary-fixed-variant">{totalCollectes}</span>
-                <p className="text-xs text-on-surface-variant mt-2">Suivi par satellite actif</p>
-              </div>
-            </div>
-
-            {/* Insights Description Section */}
-            <div className="col-span-12 bg-white rounded-[16px] p-lg shadow-[0px_4px_20px_rgba(27,67,50,0.08)]">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-12 w-12 bg-secondary-container rounded-[12px] flex items-center justify-center text-on-secondary-container">
-                  <span className="material-symbols-outlined">lightbulb</span>
-                </div>
-                <div>
-                  <h3 className="font-h3 text-h3 text-on-secondary-fixed-variant">Interprétation Descriptive</h3>
-                  <p className="text-on-surface-variant">Analyse automatique générée par AgroAnalytics AI</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <p className="font-body-md text-on-surface-variant leading-relaxed">
-                    Les données montrent une corrélation positive forte (R² = 0.82) entre l'apport hydrique précoce et le rendement final du maïs. La distribution histogrammique révèle une concentration inhabituelle de rendements records sur le secteur Nord-Est, suggérant une efficacité accrue des nouvelles méthodes de drainage.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                    <span className="material-symbols-outlined text-emerald-800">check_circle</span>
-                    <div>
-                      <p className="font-bold text-on-secondary-fixed-variant text-sm">Action Recommandée</p>
-                      <p className="text-xs text-on-surface-variant">Ajuster le calendrier de semis pour la zone B afin de maximiser l'exposition aux pics de précipitations d'avril.</p>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+               <div className="space-y-4">
+                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-body-md">
+                   {stats?.matrice_correlation?.quantite_engrais?.rendement_final !== undefined ? (
+                     <>
+                       L'analyse croisée des données révèle une corrélation de <span className="font-bold text-emerald-500">{(stats.matrice_correlation.quantite_engrais.rendement_final).toFixed(2)}</span> entre la fertilisation et le rendement. 
+                       {stats.matrice_correlation.quantite_engrais.rendement_final > 0.8 ? 
+                         " Ce score exceptionnel démontre que vos rendements sont quasi-exclusivement pilotés par la précision de vos intrants." : 
+                         stats.matrice_correlation.quantite_engrais.rendement_final > 0.5 ? 
+                         " Cela indique une dépendance positive forte : chaque kilo d'engrais supplémentaire contribue significativement à la récolte." : 
+                         " La corrélation est modérée, suggérant que des facteurs externes (irrigation, qualité du sol) jouent un rôle tampon important."}
+                     </>
+                   ) : "Données insuffisantes pour une analyse approfondie."}
+                 </p>
+                 <div className="flex gap-2">
+                    <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold rounded-full">Analyse Descriptive</span>
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold rounded-full">Régression Linéaire</span>
+                 </div>
+               </div>
+               <div className="bg-emerald-50/50 dark:bg-emerald-900/20 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-800 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm text-emerald-500">
+                    <span className="material-symbols-outlined">rocket_launch</span>
                   </div>
-                </div>
-              </div>
+                  <div>
+                    <p className="font-bold text-emerald-900 dark:text-emerald-100 text-sm">Action Recommandée</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {stats?.matrice_correlation?.quantite_engrais?.rendement_final > 0.7 
+                        ? "Optimisez vos coûts en testant des micro-doses ciblées sur les parcelles à faible rendement."
+                        : "Concentrez-vous sur l'amélioration de l'irrigation pour débloquer le potentiel des engrais."}
+                    </p>
+                  </div>
+               </div>
             </div>
           </div>
-      </div>
-    </>
+        </div>
+    </div>
   );
 }

@@ -16,6 +16,8 @@ class Collecte(Base):
     volume_eau = Column(Float, nullable=True)
     rendement_final = Column(Float, nullable=False)
     date_recolte = Column(DateTime, nullable=True)
+    region = Column(String(100), nullable=True)
+    soil_type = Column(String(100), nullable=True)
     nom_lieu = Column(String(255), nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
@@ -33,6 +35,8 @@ class CollecteBase(BaseModel):
     volume_eau: Optional[float] = None
     rendement_final: float
     date_recolte: Optional[datetime] = None
+    region: Optional[str] = None
+    soil_type: Optional[str] = None
     nom_lieu: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -49,6 +53,8 @@ class CollecteUpdate(BaseModel):
     volume_eau: Optional[float] = None
     rendement_final: Optional[float] = None
     date_recolte: Optional[datetime] = None
+    region: Optional[str] = None
+    soil_type: Optional[str] = None
     nom_lieu: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None

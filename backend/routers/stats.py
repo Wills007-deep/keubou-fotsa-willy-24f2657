@@ -79,6 +79,8 @@ def export_data(db: Session = Depends(get_db)):
     df = pd.DataFrame([{
         "ID": c.id_collecte,
         "Culture": c.culture_type,
+        "Region": c.region,
+        "Type_Sol": c.soil_type,
         "Surface_ha": c.surface,
         "Engrais_kg": c.quantite_engrais,
         "Rendement_t": c.rendement_final,

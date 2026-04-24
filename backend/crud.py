@@ -22,6 +22,8 @@ def create_collecte(db: Session, collecte: models.CollecteCreate):
         volume_eau=collecte.volume_eau,
         rendement_final=collecte.rendement_final,
         date_recolte=collecte.date_recolte,
+        region=collecte.region,
+        soil_type=collecte.soil_type,
         nom_lieu=collecte.nom_lieu,
         latitude=collecte.latitude,
         longitude=collecte.longitude,

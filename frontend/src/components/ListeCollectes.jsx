@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = 'http://localhost:8000/api';
 
 export default function ListeCollectes() {
   const navigate = useNavigate();
@@ -11,7 +13,8 @@ export default function ListeCollectes() {
   const [filterCulture, setFilterCulture] = useState('Tous');
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const itemsPerPage = 4;
+  const listRef = useRef(null);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     fetchCollectes();
@@ -26,6 +29,21 @@ export default function ListeCollectes() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportPDF = async () => {
+    if (!listRef.current) return;
+    setLoading(true);
+    try {
+      const canvas = await html2canvas(listRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(pdfHeight, 297));
+      pdf.save('AgroAnalytics_Collectes.pdf');
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   const handleDelete = async (id) => {
@@ -48,245 +66,139 @@ export default function ListeCollectes() {
 
   const getCultureIcon = (culture) => {
     const icons = {
-      'Maïs': 'grass',
-      'Riz': 'grain',
-      'Cacao': 'bakery_dining',
-      'Manioc': 'potted_plant',
-      'Blé': 'grain',
-      'Soja': 'leaf',
+      'Maïs': 'grass', 'Riz': 'grain', 'Cacao': 'bakery_dining', 'Manioc': 'potted_plant', 'Banane': 'restaurant_menu'
     };
-    return icons[culture] || 'grass';
+    return icons[culture] || 'eco';
   };
 
   const uniqueCultures = ['Tous', ...new Set(collectes.map(c => c.culture_type))];
 
-  if (loading) {
-    return (
-      <div className="w-full">
-        <div className="text-center">Chargement...</div>
-      </div>
-    );
-  }
+  const lastUpdate = collectes.length > 0 
+    ? new Date(Math.max(...collectes.map(c => new Date(c.updated_at || c.created_at)))).toLocaleDateString('fr-FR')
+    : 'N/A';
+
+  if (loading && collectes.length === 0) return (
+    <div className="w-full h-screen flex items-center justify-center dark:bg-slate-950">
+       <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
-    <>
-      <div className="w-full">
-          {/* Dashboard Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h1 className="font-h1 text-h1 text-on-secondary-fixed-variant mb-1">Historique des Collectes</h1>
-              <p className="font-body-md text-on-surface-variant">Projet INF 232 • Suivi de toutes vos collectes de terrain</p>
-            </div>
-            <button 
-              onClick={() => navigate('/formulaire')}
-              className="bg-primary hover:bg-primary-container text-on-primary font-bold px-6 py-3 rounded-[16px] shadow-[0px_4px_20px_rgba(27,67,50,0.15)] flex items-center gap-2 transition-all active:scale-95"
-            >
-              <span className="material-symbols-outlined">add</span>
-              Nouvelle Collecte
-            </button>
-          </div>
-
-          {/* Summary Cards */}
-          <section className="grid grid-cols-12 gap-gutter mb-lg">
-            <div className="col-span-12 md:col-span-4 bg-white p-lg rounded-[16px] shadow-[0px_4px_20px_rgba(27,67,50,0.08)] flex items-center gap-lg border border-emerald-900/5">
-              <div className="w-16 h-16 bg-primary-fixed rounded-full flex items-center justify-center text-on-primary-fixed">
-                <span className="material-symbols-outlined text-4xl">inventory_2</span>
-              </div>
-              <div>
-                <p className="text-label-caps text-outline uppercase">Total Collectes</p>
-                <p className="text-h2 font-h2 text-on-surface">{collectes.length}</p>
-                <p className="text-xs text-secondary flex items-center gap-1 font-semibold">
-                  <span className="material-symbols-outlined text-xs">trending_up</span> +12% ce mois
-                </p>
-              </div>
-            </div>
-            <div className="col-span-12 md:col-span-4 bg-white p-lg rounded-[16px] shadow-[0px_4px_20px_rgba(27,67,50,0.08)] flex items-center gap-lg border border-emerald-900/5">
-              <div className="w-16 h-16 bg-secondary-container rounded-full flex items-center justify-center text-on-secondary-container">
-                <span className="material-symbols-outlined text-4xl">agriculture</span>
-              </div>
-              <div>
-                <p className="text-label-caps text-outline uppercase">Rendement Moyen</p>
-                <p className="text-h2 font-h2 text-on-surface">
-                  {collectes.length > 0 
-                    ? (collectes.reduce((a, c) => a + c.rendement_final, 0) / collectes.length).toFixed(2)
-                    : '0'} <span className="text-body-md font-normal">T/ha</span>
-                </p>
-                <p className="text-xs text-secondary flex items-center gap-1 font-semibold">
-                  <span className="material-symbols-outlined text-xs">equalizer</span> Stable
-                </p>
-              </div>
-            </div>
-            <div className="col-span-12 md:col-span-4 bg-primary-container p-lg rounded-[16px] shadow-[0px_10px_30px_rgba(27,67,50,0.12)] relative overflow-hidden text-white">
-              <div className="relative z-10">
-                <p className="text-label-caps text-primary-fixed opacity-80 uppercase">Dernière Mise à Jour</p>
-                <p className="text-h3 font-h3">Aujourd'hui, 14:30</p>
-                <button className="mt-md bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold transition-all">Exporter PDF</button>
-              </div>
-              <div className="absolute -right-4 -bottom-4 opacity-10">
-                <span className="material-symbols-outlined text-[120px]">analytics</span>
-              </div>
-            </div>
-          </section>
-
-          {/* Filter Section */}
-          <section className="mb-lg flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              {uniqueCultures.map(culture => (
-                <button
-                  key={culture}
-                  onClick={() => { setFilterCulture(culture); setCurrentPage(1); }}
-                  className={`px-6 py-2 rounded-full text-sm font-semibold transition-colors ${
-                    filterCulture === culture
-                      ? 'bg-primary text-white shadow-md'
-                      : 'bg-white text-secondary hover:bg-secondary-fixed border border-secondary-fixed'
-                  }`}
-                >
-                  {culture}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl text-sm font-semibold border border-outline-variant hover:bg-surface-container transition-all">
-                <span className="material-symbols-outlined text-lg">filter_list</span>
-                Plus de filtres
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl text-sm font-semibold border border-outline-variant hover:bg-surface-container transition-all">
-                <span className="material-symbols-outlined text-lg">calendar_today</span>
-                Cette Année
-              </button>
-            </div>
-          </section>
-
-          {/* Table */}
-          <section className="bg-white rounded-[16px] shadow-[0px_4px_20px_rgba(27,67,50,0.08)] overflow-hidden border border-emerald-900/5">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-container-low border-b border-outline-variant/30">
-                    <th className="px-lg py-md text-label-caps text-outline uppercase tracking-wider">Culture</th>
-                    <th className="px-lg py-md text-label-caps text-outline uppercase tracking-wider">Plantation</th>
-                    <th className="px-lg py-md text-label-caps text-outline uppercase tracking-wider text-center">Date</th>
-                    <th className="px-lg py-md text-label-caps text-outline uppercase tracking-wider text-right">Rendement</th>
-                    <th className="px-lg py-md text-label-caps text-outline uppercase tracking-wider text-center">Statut</th>
-                    <th className="px-lg py-md text-label-caps text-outline uppercase tracking-wider"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/10">
-                  {displayedCollectes.map((c, idx) => (
-                    <tr key={c.id_collecte} className="hover:bg-emerald-50/30 transition-colors group">
-                      <td className="px-lg py-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
-                            <span className="material-symbols-outlined">{getCultureIcon(c.culture_type)}</span>
-                          </div>
-                          <span className="font-bold text-emerald-900">{c.culture_type}</span>
-                        </div>
-                      </td>
-                      <td className="px-lg py-lg text-body-md text-on-surface">{c.plantation_name || c.nom_lieu || '-'}</td>
-                      <td className="px-lg py-lg text-center text-body-md text-slate-500">
-                        {c.created_at ? new Date(c.created_at).toLocaleDateString('fr-FR') : '-'}
-                      </td>
-                      <td className="px-lg py-lg text-right">
-                        <span className="font-bold text-on-surface">{c.rendement_final}</span> <span className="text-xs text-outline">Tons</span>
-                      </td>
-                      <td className="px-lg py-lg text-center">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider">
-                          Validé
-                        </span>
-                      </td>
-                      <td className="px-lg py-lg text-right relative">
-                        <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => navigate(`/formulaire/${c.id_collecte}`)}
-                            className="p-2 hover:bg-emerald-100 rounded-lg text-secondary transition-colors"
-                            title="Éditer"
-                          >
-                            <span className="material-symbols-outlined">edit</span>
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(c.id_collecte)}
-                            className="p-2 hover:bg-error/20 rounded-lg text-error transition-colors"
-                            title="Supprimer"
-                          >
-                            <span className="material-symbols-outlined">delete</span>
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => setDeleteConfirm(c.id_collecte)}
-                          className="md:hidden p-2 text-secondary hover:text-error transition-colors"
-                        >
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="p-lg flex items-center justify-between border-t border-outline-variant/30">
-              <span className="text-sm text-outline">
-                Affichage de {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredCollectes.length)} sur {filteredCollectes.length} collectes
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-outline hover:bg-surface-container transition-all disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined">chevron_left</span>
-                </button>
-                {Array.from({ length: Math.min(3, totalPages) }).map((_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg font-bold transition-all ${
-                      currentPage === i + 1
-                        ? 'bg-primary text-white'
-                        : 'border border-outline-variant text-on-surface hover:bg-surface-container'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-outline hover:bg-surface-container transition-all disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined">chevron_right</span>
-                </button>
-              </div>
-            </div>
-          </section>
-
-        {/* Delete Confirmation Modal */}
-        {deleteConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-[16px] p-lg shadow-lg max-w-sm">
-              <h3 className="font-h3 text-h3 text-on-surface mb-md">Confirmer la suppression</h3>
-              <p className="font-body-md text-on-surface-variant mb-lg">
-                Êtes-vous sûr de vouloir supprimer cette collecte ? Cette action ne peut pas être annulée.
-              </p>
-              <div className="flex gap-md justify-end">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-6 py-2 border border-outline-variant rounded-xl font-semibold hover:bg-surface-container transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirm)}
-                  className="px-6 py-2 bg-error text-white rounded-xl font-semibold hover:brightness-110 transition-all"
-                >
-                  Supprimer
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+    <div className="w-full" ref={listRef}>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="font-h1 text-h1 text-emerald-900 dark:text-emerald-100 mb-1">Historique des Collectes</h1>
+          <p className="text-slate-500 dark:text-slate-400">Gestion et suivi des parcelles en temps réel</p>
+        </div>
+        <button onClick={() => navigate('/formulaire')} className="bg-emerald-600 text-white font-bold px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all">
+          <span className="material-symbols-outlined">add</span> Nouvelle Collecte
+        </button>
       </div>
-    </>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-emerald-900/5 dark:border-emerald-100/10 flex items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <span className="material-symbols-outlined">database</span>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+            <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{collectes.length}</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-emerald-900/5 dark:border-emerald-100/10 flex items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <span className="material-symbols-outlined">location_on</span>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Régions</p>
+            <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{new Set(collectes.map(c => c.region)).size}</p>
+          </div>
+        </div>
+        <div className="bg-emerald-900 dark:bg-emerald-600 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+           <div className="relative z-10">
+              <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Dernière Mise à Jour</p>
+              <p className="text-lg font-bold">{lastUpdate}</p>
+              <button onClick={exportPDF} className="mt-3 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2">
+                 <span className="material-symbols-outlined text-sm">picture_as_pdf</span> Exporter PDF
+              </button>
+           </div>
+           <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl opacity-10">history</span>
+        </div>
+      </section>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-emerald-900/5 dark:border-emerald-100/10 overflow-hidden">
+        <div className="p-4 border-b border-emerald-900/5 dark:border-slate-800 flex flex-wrap gap-2">
+          {uniqueCultures.slice(0, 8).map(c => (
+            <button key={c} onClick={() => setFilterCulture(c)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${filterCulture === c ? 'bg-emerald-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Culture</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Région</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Plantation</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Rendement</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {displayedCollectes.map(c => (
+                <tr key={c.id_collecte} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <span className="material-symbols-outlined text-sm">{getCultureIcon(c.culture_type)}</span>
+                      </div>
+                      <span className="font-bold text-emerald-900 dark:text-emerald-100 text-sm">{c.culture_type}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{c.region || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 font-medium">{c.plantation_name || '-'}</td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="font-bold text-emerald-900 dark:text-emerald-100">{c.rendement_final}</span> <span className="text-[10px] text-slate-400">T/HA</span>
+                  </td>
+                  <td className="px-6 py-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => navigate(`/formulaire/${c.id_collecte}`)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors">
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                    </button>
+                    <button onClick={() => setDeleteConfirm(c.id_collecte)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                      <span className="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-800/30">
+           <p className="text-[10px] font-bold text-slate-400 uppercase">Page {currentPage} sur {totalPages || 1}</p>
+           <div className="flex gap-2">
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 disabled:opacity-30 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                 <span className="material-symbols-outlined text-sm">chevron_left</span>
+              </button>
+              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 disabled:opacity-30 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                 <span className="material-symbols-outlined text-sm">chevron_right</span>
+              </button>
+           </div>
+        </div>
+      </div>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-xl max-w-sm w-full border border-slate-100 dark:border-slate-800">
+            <h3 className="text-xl font-bold text-emerald-900 dark:text-emerald-100 mb-2">Confirmer Suppression</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Cette action est irréversible. Voulez-vous continuer ?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 transition-colors">Annuler</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-all">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
