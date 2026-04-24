@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: agroanalytics-api
+    runtime: python-3.11
+    buildCommand: cd backend && pip install --no-cache-dir -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    
+    plan: free
+    numInstances: 1
+    envVars:
+      - key: DATABASE_URL
+        scope: runtime
+        value: postgresql://postgres:O6mYavjmmK6LddDY@db.dhgqfdrjuxrlabopqfvo.supabase.co:5432/postgres
+      
+      - key: SECRET_KEY
+        scope: runtime
+        value: cYZnXUdqrR-jACf5Y4892w70vhbSuh5ZVfTTuLuSf5I
+      
+      - key: ALGORITHM
+        value: HS256
+      
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+    
+    healthCheckPath: /
+    healthCheckInterval: 60
+    buildTimeout: 900
+    startTimeout: 60
+
+previewsEnabled: false
