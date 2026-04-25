@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// On utilise 127.0.0.1 au lieu de localhost pour éviter les problèmes de résolution DNS sur Linux
-const API_URL = 'http://127.0.0.1:8000/api';
+// Utilise l'URL Render en production (Vercel) et localhost en développement
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://keubou-fotsa-willy-24f2657.onrender.com/api');
 
 export const api = axios.create({
   baseURL: API_URL,
