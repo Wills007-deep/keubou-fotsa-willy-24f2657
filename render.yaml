@@ -12,7 +12,7 @@ services:
         value: "3.11.9"
       - key: DATABASE_URL
         scope: runtime
-        value: postgresql://postgres:O6mYavjmmK6LddDY@db.dhgqfdrjuxrlabopqfvo.supabase.co:5432/postgres
+        value: postgresql://postgres.dhgqfdrjuxrlabopqfvo:O6mYavjmmK6LddDY@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
       
       - key: SECRET_KEY
         scope: runtime
