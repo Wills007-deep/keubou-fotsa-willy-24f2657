@@ -101,8 +101,10 @@ class CollecteCreate(CollecteBase):
     @field_validator('surface', 'quantite_engrais', 'rendement_final')
     @classmethod
     def validate_positive_values(cls, v: float, info: ValidationInfo) -> float:
-        if v <= 0:
-            raise ValueError(f"Le champ {info.field_name} doit être strictement supérieur à zéro pour être valide.")
+        if info.field_name == 'surface' and v <= 0:
+            raise ValueError("La surface doit être strictement supérieure à zéro.")
+        if v < 0:
+            raise ValueError(f"Le champ {info.field_name} ne peut pas être négatif.")
         return v
 
 class CollecteUpdate(BaseModel):

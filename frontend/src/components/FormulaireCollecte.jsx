@@ -135,25 +135,29 @@ export default function FormulaireCollecte() {
   const handleSearchLocation = async () => {
     if (!searchQuery) return;
     try {
-      const response = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      // On ajoute countrycodes=cm pour forcer la recherche au Cameroun
+      const response = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=cm&limit=1`);
       if (response.data && response.data.length > 0) {
         const { lat, lon, display_name } = response.data[0];
         const latitude = parseFloat(lat);
         const longitude = parseFloat(lon);
-        const placeName = display_name.split(',')[0];
         
-        const cleanPlaceName = placeName.split(',')[0].trim();
-        const detectedRegion = getRegionFromLocation(cleanPlaceName) || getRegionFromLocation(display_name);
-        
+        // On centre la carte et on place le marqueur
         setMapCenter([latitude, longitude]);
+        setSelectedLocation([latitude, longitude]);
+        
+        const placeName = display_name.split(',')[0];
+        const detectedRegion = getRegionFromLocation(display_name);
+        
         setFormData(prev => ({ 
           ...prev, 
           latitude, 
           longitude, 
-          nom_lieu: cleanPlaceName,
+          nom_lieu: placeName,
           region: detectedRegion || prev.region
         }));
-        setSelectedLocation([latitude, longitude]);
+      } else {
+        alert("Lieu non trouvé. Essayez d'être plus précis (ex: Okola, Centre)");
       }
     } catch (err) {
       console.error("Search failed", err);
@@ -251,7 +255,6 @@ export default function FormulaireCollecte() {
     } finally {
       setLoading(false);
     }
-    }
   };
 
   return (
@@ -346,8 +349,34 @@ export default function FormulaireCollecte() {
                 </div>
               </div>
               <div className="space-y-sm">
-                <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE</label>
-                <input name="nom_lieu" value={formData.nom_lieu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" placeholder="Ex: Bloc Sud 4-B" />
+                <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE (Tapez une ville ou village)</label>
+                <div className="flex gap-2">
+                  <input 
+                    name="nom_lieu" 
+                    value={formData.nom_lieu} 
+                    onChange={handleInputChange} 
+                    onBlur={() => {
+                      if (formData.nom_lieu && !selectedLocation) {
+                        setSearchQuery(formData.nom_lieu);
+                        handleSearchLocation();
+                      }
+                    }}
+                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-body-md" 
+                    placeholder="Ex: Okola, Cameroun" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(formData.nom_lieu);
+                      setTimeout(handleSearchLocation, 100);
+                    }}
+                    className="bg-emerald-50 text-primary border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-100 transition-all font-bold text-xs"
+                  >
+                    <span className="material-symbols-outlined text-sm">map</span>
+                    Localiser
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 italic">Cliquez sur "Localiser" pour placer automatiquement le point sur la carte.</p>
               </div>
             </div>
 

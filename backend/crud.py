@@ -12,30 +12,37 @@ def get_collectes(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Collecte).order_by(models.Collecte.created_at.desc()).offset(skip).limit(limit).all()
 
 def create_collecte(db: Session, collecte: models.CollecteCreate):
-    db_collecte = models.Collecte(
-        id_collecte=str(uuid.uuid4()),
-        user_id=None, # Plus lié à un utilisateur spécifique
-        participant_name=collecte.participant_name,
-        culture_type=collecte.culture_type,
-        plantation_name=collecte.plantation_name,
-        operator=collecte.operator,
-        surface=collecte.surface,
-        quantite_engrais=collecte.quantite_engrais,
-        volume_eau=collecte.volume_eau,
-        rendement_final=collecte.rendement_final,
-        date_recolte=collecte.date_recolte,
-        region=collecte.region,
-        soil_type=collecte.soil_type,
-        nom_lieu=collecte.nom_lieu,
-        latitude=collecte.latitude,
-        longitude=collecte.longitude,
-        created_at=datetime.now(),
-        updated_at=datetime.now()
-    )
-    db.add(db_collecte)
-    db.commit()
-    db.refresh(db_collecte)
-    return db_collecte
+    try:
+        print(f"DEBUG: Tentative de création de collecte: {collecte.dict()}")
+        db_collecte = models.Collecte(
+            id_collecte=str(uuid.uuid4()),
+            user_id=None,
+            participant_name=collecte.participant_name,
+            culture_type=collecte.culture_type,
+            plantation_name=collecte.plantation_name,
+            operator=collecte.operator,
+            surface=collecte.surface,
+            quantite_engrais=collecte.quantite_engrais,
+            volume_eau=collecte.volume_eau,
+            rendement_final=collecte.rendement_final,
+            date_recolte=collecte.date_recolte,
+            region=collecte.region,
+            soil_type=collecte.soil_type,
+            nom_lieu=collecte.nom_lieu,
+            latitude=collecte.latitude,
+            longitude=collecte.longitude,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        db.add(db_collecte)
+        db.commit()
+        db.refresh(db_collecte)
+        print(f"DEBUG: Succès ! ID: {db_collecte.id_collecte}")
+        return db_collecte
+    except Exception as e:
+        db.rollback()
+        print(f"DEBUG ERROR: {str(e)}")
+        raise e
 
 def update_collecte(db: Session, collecte_id: str, collecte_update: models.CollecteUpdate):
     db_collecte = db.query(models.Collecte).filter(
