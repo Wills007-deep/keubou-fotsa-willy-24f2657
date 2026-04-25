@@ -14,6 +14,10 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user) {
+    const hasSeenOnboarding = localStorage.getItem('onboarding_seen');
+    if (hasSeenOnboarding) {
+      return <Navigate to="/login" />;
+    }
     return <Navigate to="/onboarding" />;
   }
 

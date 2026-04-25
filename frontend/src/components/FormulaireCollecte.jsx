@@ -171,7 +171,7 @@ export default function FormulaireCollecte() {
     
     // Culture validation
     if (!formData.culture_type) {
-      newErrors.culture_type = 'La sélection d''une culture est obligatoire.';
+      newErrors.culture_type = "La sélection d'une culture est obligatoire.";
     } else if (formData.culture_type === 'Autre') {
       const custom = formData.custom_culture.trim();
       if (!custom) {
@@ -184,7 +184,7 @@ export default function FormulaireCollecte() {
     }
 
     // Mandatory fields
-    if (!formData.region) newErrors.region = 'La région est obligatoire pour l''analyse géospatiale.';
+    if (!formData.region) newErrors.region = "La région est obligatoire pour l'analyse géospatiale.";
     if (!formData.plantation_name || formData.plantation_name.length < 2) newErrors.plantation_name = 'Le nom de la plantation est requis (min. 2 caractères).';
     
     // Numeric validation
@@ -192,7 +192,7 @@ export default function FormulaireCollecte() {
       newErrors.surface = 'La surface doit être un nombre positif supérieur à zéro.';
     }
     if (!formData.quantite_engrais || parseFloat(formData.quantite_engrais) < 0) {
-      newErrors.quantite_engrais = 'La quantité d''engrais ne peut pas être négative.';
+      newErrors.quantite_engrais = "La quantité d'engrais ne peut pas être négative.";
     }
     if (!formData.rendement_final || parseFloat(formData.rendement_final) <= 0) {
       newErrors.rendement_final = 'Le rendement final doit être renseigné et supérieur à zéro.';
