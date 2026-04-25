@@ -7,7 +7,7 @@ export const ThemeProvider = ({ children }) => {
     try {
       const saved = localStorage.getItem('agroanalytics-theme');
       if (saved) return saved === 'dark';
-      return window.matchMedia?.('(prefers-color-scheme: dark)').matches || false;
+      return false;
     } catch (e) {
       return false;
     }

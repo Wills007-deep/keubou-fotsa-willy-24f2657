@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -13,6 +13,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const m = params.get('mode');
+    if (m === 'register' || m === 'login') {
+      setMode(m);
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +55,13 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       {/* Logo */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
-        <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="flex items-center justify-center gap-3 mb-4 relative">
+          <button 
+            onClick={() => navigate('/onboarding')}
+            className="absolute -left-12 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors"
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
           <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 dark:shadow-none">
             <span className="material-symbols-outlined text-2xl">potted_plant</span>
           </div>

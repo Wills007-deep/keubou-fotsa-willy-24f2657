@@ -9,6 +9,7 @@ import Accueil from './components/Accueil';
 import ListeCollectes from './components/ListeCollectes';
 import FormulaireCollecte from './components/FormulaireCollecte';
 import Dashboard from './components/Dashboard';
+import Onboarding from './components/Onboarding';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Router>
             <Routes>
               {/* Public Routes */}
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/login" element={<Login />} />
 
               {/* Protected Routes inside Layout */}
