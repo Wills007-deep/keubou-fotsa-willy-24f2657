@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [collectes, setCollectes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState(null);
   const reportRef = useRef(null);
 
@@ -58,7 +59,7 @@ export default function Dashboard() {
 
   const exportPDF = async () => {
     if (!reportRef.current) return;
-    setLoading(true);
+    setIsExporting(true);
     try {
       const reportElement = reportRef.current;
       
@@ -94,7 +95,7 @@ export default function Dashboard() {
       console.error("PDF Export failed", e);
       alert("Erreur lors de la génération. Assurez-vous que la page est bien chargée.");
     } finally {
-      setLoading(false);
+      setIsExporting(false);
     }
   };
 
@@ -153,18 +154,31 @@ export default function Dashboard() {
   }
 
   const totalCollectes = collectes.length;
-  const avgYield = totalCollectes > 0 
-    ? (collectes.reduce((sum, c) => sum + c.rendement_final, 0) / totalCollectes).toFixed(2)
+  const yields = collectes.map(c => c.rendement_final).filter(v => v != null);
+  const avgYield = yields.length > 0
+    ? (yields.reduce((s, v) => s + v, 0) / yields.length).toFixed(2)
     : 0;
-  
+  const minYield = yields.length > 0 ? Math.min(...yields).toFixed(2) : 0;
+  const maxYield = yields.length > 0 ? Math.max(...yields).toFixed(2) : 0;
+
   const correlationVal = stats?.matrice_correlation?.quantite_engrais?.rendement_final ?? 0;
+  const rSquared = (correlationVal ** 2).toFixed(4);
   const confidenceIndex = (Math.abs(correlationVal) * 100 * Math.min(totalCollectes / 10, 1)).toFixed(1);
 
   const avgVariance = stats?.moyennes_rendement_par_culture?.length > 0
     ? (stats.moyennes_rendement_par_culture.reduce((sum, c) => sum + (c.rendement_ecart_type ** 2), 0) / stats.moyennes_rendement_par_culture.length).toFixed(2)
     : 0;
-  
   const avgStdDev = Math.sqrt(parseFloat(avgVariance)).toFixed(2);
+  // Erreur standard = σ / √n
+  const standardError = totalCollectes > 0
+    ? (parseFloat(avgStdDev) / Math.sqrt(totalCollectes)).toFixed(4)
+    : 0;
+
+  const totalSurface = collectes.reduce((s, c) => s + (c.surface || 0), 0).toFixed(2);
+  const totalEngrais = collectes.reduce((s, c) => s + (c.quantite_engrais || 0), 0);
+  const efficienceEngrais = totalEngrais > 0
+    ? ((parseFloat(avgYield) * totalCollectes) / totalEngrais * 1000).toFixed(2)
+    : 0; // kg de rendement par kg d'engrais * 1000
 
   const lastUpdate = collectes.length > 0 
     ? new Date(Math.max(...collectes.map(c => new Date(c.updated_at || c.created_at)))).toLocaleString('fr-FR')
@@ -238,29 +252,99 @@ export default function Dashboard() {
 
               {/* Advanced Statistical Metrics Table */}
               <div style={{ marginBottom: '40px', backgroundColor: '#ffffff', padding: '30px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                 <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#064e3b', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                 <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#064e3b', marginBottom: '5px', paddingBottom: '10px', borderBottom: '2px solid #064e3b' }}>
                     TABLEAU DES MÉTRIQUES STATISTIQUES AVANCÉES
                  </h3>
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
-                       <span style={{ fontSize: '13px', color: '#64748b' }}>Variance des rendements (σ²)</span>
-                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a' }}>{avgVariance}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
-                       <span style={{ fontSize: '13px', color: '#64748b' }}>Écart-Type Global (σ)</span>
-                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a' }}>{avgStdDev} t/ha</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
-                       <span style={{ fontSize: '13px', color: '#64748b' }}>Coefficient de Pearson (R)</span>
-                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>{correlationVal.toFixed(4)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
-                       <span style={{ fontSize: '13px', color: '#64748b' }}>Coefficient de Détermination (R²)</span>
-                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>{(correlationVal ** 2).toFixed(4)}</span>
-                    </div>
-                 </div>
+                 <p style={{ fontSize: '10px', color: '#94a3b8', marginBottom: '20px', marginTop: '5px' }}>
+                   Calculées sur {totalCollectes} parcelle(s) • {totalSurface} ha de surface totale analysée
+                 </p>
+
+                 {/* Section 1: Statistiques Descriptives */}
+                 <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                   1. Statistiques Descriptives des Rendements
+                 </p>
+                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '25px' }}>
+                   <thead>
+                     <tr style={{ backgroundColor: '#f1f5f9' }}>
+                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b' }}>INDICATEUR</th>
+                       <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: '10px', color: '#64748b' }}>VALEUR</th>
+                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b' }}>INTERPRÉTATION</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {[
+                       { label: 'Rendement Moyen (μ)', val: `${avgYield} t/ha`, interp: 'Performance moyenne de l\'ensemble des parcelles', color: '#059669' },
+                       { label: 'Rendement Minimum', val: `${minYield} t/ha`, interp: 'Parcelle la moins productive', color: '#dc2626' },
+                       { label: 'Rendement Maximum', val: `${maxYield} t/ha`, interp: 'Parcelle la plus productive', color: '#059669' },
+                       { label: 'Variance (σ²)', val: avgVariance, interp: parseFloat(avgVariance) < 1 ? 'Faible dispersion — Production homogène' : 'Forte dispersion — Hétérogénéité entre parcelles', color: parseFloat(avgVariance) < 1 ? '#059669' : '#d97706' },
+                       { label: 'Écart-Type (σ)', val: `${avgStdDev} t/ha`, interp: `Marge de variation de ±${avgStdDev} t/ha autour de la moyenne`, color: '#0f172a' },
+                       { label: 'Erreur Standard (SE)', val: standardError, interp: 'Précision de l\'estimation de la moyenne', color: '#0f172a' },
+                     ].map((row, i) => (
+                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: i % 2 === 0 ? '#ffffff' : '#fafafa' }}>
+                         <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', color: '#334155' }}>{row.label}</td>
+                         <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '900', color: row.color, textAlign: 'right' }}>{row.val}</td>
+                         <td style={{ padding: '10px 12px', fontSize: '11px', color: '#64748b' }}>{row.interp}</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+
+                 {/* Section 2: Analyse de Corrélation */}
+                 <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                   2. Analyse de Corrélation &amp; Régression
+                 </p>
+                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '25px' }}>
+                   <thead>
+                     <tr style={{ backgroundColor: '#f1f5f9' }}>
+                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b' }}>INDICATEUR</th>
+                       <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: '10px', color: '#64748b' }}>VALEUR</th>
+                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b' }}>INTERPRÉTATION</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {[
+                       { label: 'Coefficient de Pearson (R)', val: correlationVal.toFixed(4), interp: correlationVal > 0.7 ? 'Corrélation forte — L\'engrais influence fortement le rendement' : correlationVal > 0.4 ? 'Corrélation modérée — Influence partielle de l\'engrais' : 'Corrélation faible — D\'autres facteurs dominent', color: correlationVal > 0.7 ? '#059669' : correlationVal > 0.4 ? '#d97706' : '#dc2626' },
+                       { label: 'Coefficient de Détermination (R²)', val: rSquared, interp: `${(parseFloat(rSquared) * 100).toFixed(1)}% de la variation du rendement est expliquée par l\'engrais`, color: '#059669' },
+                       { label: 'Indice de Confiance', val: `${confidenceIndex}%`, interp: 'Niveau de fiabilité statistique du modèle', color: '#059669' },
+                     ].map((row, i) => (
+                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: i % 2 === 0 ? '#ffffff' : '#fafafa' }}>
+                         <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', color: '#334155' }}>{row.label}</td>
+                         <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '900', color: row.color, textAlign: 'right' }}>{row.val}</td>
+                         <td style={{ padding: '10px 12px', fontSize: '11px', color: '#64748b' }}>{row.interp}</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+
+                 {/* Section 3: Efficience des Intrants */}
+                 <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                   3. Efficience des Intrants
+                 </p>
+                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                   <thead>
+                     <tr style={{ backgroundColor: '#f1f5f9' }}>
+                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b' }}>INDICATEUR</th>
+                       <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: '10px', color: '#64748b' }}>VALEUR</th>
+                       <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: '10px', color: '#64748b' }}>INTERPRÉTATION</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {[
+                       { label: 'Engrais Total Utilisé', val: `${totalEngrais} kg`, interp: 'Ensemble des intrants enregistrés', color: '#0f172a' },
+                       { label: 'Surface Totale Couverte', val: `${totalSurface} ha`, interp: 'Superficie totale de toutes les parcelles', color: '#0f172a' },
+                       { label: 'Efficience Engrais (Ratio)', val: efficienceEngrais, interp: 'Indice de productivité par kg d\'engrais utilisé (plus = mieux)', color: parseFloat(efficienceEngrais) > 1 ? '#059669' : '#d97706' },
+                     ].map((row, i) => (
+                       <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: i % 2 === 0 ? '#ffffff' : '#fafafa' }}>
+                         <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 'bold', color: '#334155' }}>{row.label}</td>
+                         <td style={{ padding: '10px 12px', fontSize: '13px', fontWeight: '900', color: row.color, textAlign: 'right' }}>{row.val}</td>
+                         <td style={{ padding: '10px 12px', fontSize: '11px', color: '#64748b' }}>{row.interp}</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+
                  <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '15px', fontStyle: 'italic' }}>
-                    * Ces indicateurs mesurent la force du lien entre vos intrants et vos résultats réels sur le terrain.
+                    * Toutes les métriques sont calculées en temps réel sur vos données collectées sur le terrain. Source : AgroAnalytics AI Engine v2.4
                  </p>
               </div>
 
@@ -348,10 +432,10 @@ export default function Dashboard() {
           <div className="flex gap-3">
              <button 
                onClick={exportPDF} 
-               disabled={loading}
+               disabled={isExporting}
                className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-emerald-900/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-3 border-2 border-white/10"
              >
-                {loading ? (
+                {isExporting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     GÉNÉRATION...
