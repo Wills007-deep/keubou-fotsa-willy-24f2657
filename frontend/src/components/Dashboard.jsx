@@ -6,7 +6,7 @@ import L from 'leaflet';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://keubou-fotsa-willy-24f2657.onrender.com/api');
 const COLORS = ['#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#064e3b'];
 
 delete L.Icon.Default.prototype._getIconUrl;
