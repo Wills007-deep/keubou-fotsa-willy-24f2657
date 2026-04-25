@@ -2,7 +2,8 @@ import uuid
 from sqlalchemy import Column, String, Float, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from database import Base
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator, ValidationInfo
+import re
 from typing import List, Optional
 from datetime import datetime
 
@@ -48,6 +49,14 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+    @field_validator('email')
+    @classmethod
+    def validate_username_pattern(cls, v: str) -> str:
+        # Pattern: at least 3 letters followed by exactly 2 digits
+        if not re.match(r"^[a-zA-Z]{3,}\d{2}$", v):
+            raise ValueError("L'identifiant doit être composé d'au moins 3 lettres suivies de 2 chiffres (ex: jean01)")
+        return v.lower()
+
 class UserResponse(UserBase):
     id: str
     created_at: datetime
@@ -78,7 +87,21 @@ class CollecteBase(BaseModel):
     longitude: Optional[float] = None
 
 class CollecteCreate(CollecteBase):
-    pass
+    @field_validator('culture_type')
+    @classmethod
+    def validate_culture_type(cls, v: str) -> str:
+        if len(v.strip()) < 3:
+            raise ValueError("Le type de culture doit contenir au moins 3 caractères cohérents.")
+        if v.isdigit():
+            raise ValueError("Le type de culture ne peut pas être composé uniquement de chiffres.")
+        return v.strip()
+
+    @field_validator('surface', 'quantite_engrais', 'rendement_final')
+    @classmethod
+    def validate_positive_values(cls, v: float, info: ValidationInfo) -> float:
+        if v <= 0:
+            raise ValueError(f"Le champ {info.field_name} doit être strictement supérieur à zéro pour être valide.")
+        return v
 
 class CollecteUpdate(BaseModel):
     culture_type: Optional[str] = None

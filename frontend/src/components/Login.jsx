@@ -18,8 +18,8 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    if (!username || username.length < 3) {
-      setError("L'identifiant doit contenir au moins 3 caractères.");
+    if (!username || !/^[a-zA-Z]{3,}\d{2}$/.test(username)) {
+      setError("L'identifiant doit être composé d'au moins 3 lettres suivies de 2 chiffres (ex: jean01).");
       return;
     }
     if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {

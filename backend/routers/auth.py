@@ -33,6 +33,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     user = db.query(models.User).filter(models.User.email == identifier).first()
     
+    # Validation du pattern identifiant (lettres + 2 chiffres)
+    import re
+    if not re.match(r"^[a-zA-Z]{3,}\d{2}$", identifier):
+        raise HTTPException(status_code=400, detail="L'identifiant doit être composé d'au moins 3 lettres suivies de 2 chiffres (ex: jean01)")
+
     # Nouvel utilisateur → créer le compte avec le PIN en clair (mode TP)
     if not user:
         if len(provided_pin) != 4 or not provided_pin.isdigit():
