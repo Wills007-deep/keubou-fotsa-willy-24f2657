@@ -118,9 +118,10 @@ export default function ListeCollectes() {
            <div className="relative z-10">
               <p className="text-[10px] font-bold opacity-70 uppercase tracking-widest">Dernière Mise à Jour</p>
               <p className="text-lg font-bold">{lastUpdate}</p>
-              <button onClick={exportPDF} className="mt-3 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2">
-                 <span className="material-symbols-outlined text-sm">picture_as_pdf</span> Exporter PDF
-              </button>
+              <p className="mt-2 text-[10px] opacity-80 flex items-center gap-1">
+                 <span className="material-symbols-outlined text-xs">info</span>
+                 Rapport complet dans l'onglet Analyses
+              </p>
            </div>
            <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-7xl opacity-10">history</span>
         </div>

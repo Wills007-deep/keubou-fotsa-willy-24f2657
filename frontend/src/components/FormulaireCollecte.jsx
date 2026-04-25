@@ -265,6 +265,19 @@ export default function FormulaireCollecte() {
           <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour évaluer le rapport engrais / rendement.</p>
         </div>
 
+        {/* Banner Instruction Mobile/Global */}
+        <div className="mb-8 bg-emerald-50 dark:bg-emerald-900/30 border-l-4 border-primary p-4 rounded-r-xl flex items-start gap-4">
+           <div className="w-10 h-10 rounded-full bg-white dark:bg-emerald-800 flex items-center justify-center text-primary dark:text-emerald-100 shadow-sm shrink-0">
+              <span className="material-symbols-outlined">explore</span>
+           </div>
+           <div>
+              <p className="font-bold text-emerald-900 dark:text-emerald-50 text-sm">Conseil : Commencez par la carte</p>
+              <p className="text-xs text-emerald-800 dark:text-emerald-200 opacity-90 leading-relaxed">
+                 Pour une précision maximale, localisez d'abord votre plantation sur la carte (en haut sur mobile, à droite sur PC). Utilisez la barre de recherche ou cliquez directement sur le lieu.
+              </p>
+           </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="flex flex-col-reverse lg:grid lg:grid-cols-12 gap-gutter">
           <div className="col-span-12 lg:col-span-8 space-y-gutter">
             {/* Step 1 */}
@@ -452,7 +465,7 @@ export default function FormulaireCollecte() {
               </div>
               <div className="h-64 relative z-0">
                 <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <MapClick onLocationSelect={handleLocationSelect} />
                   <MapRecenter center={mapCenter} />
                   {selectedLocation && <Marker position={selectedLocation} />}

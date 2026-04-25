@@ -61,37 +61,38 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const reportElement = reportRef.current;
-      // Au lieu de block/none, on utilise la visibilité pour que les graphiques soient rendus
-      reportElement.style.position = 'fixed';
-      reportElement.style.left = '0';
-      reportElement.style.top = '0';
-      reportElement.style.zIndex = '-1000';
-      reportElement.style.display = 'block';
       
-      // Laisser un court délai pour que les graphiques Recharts se dessinent
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // On prépare l'élément pour la capture (visible mais hors champ)
+      reportElement.style.display = 'block';
+      reportElement.style.position = 'fixed';
+      reportElement.style.left = '-10000px';
+      reportElement.style.top = '0';
+      
+      // On laisse beaucoup de temps aux graphiques pour s'animer et s'afficher
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
       const canvas = await html2canvas(reportElement, {
         scale: 2,
         useCORS: true,
-        logging: true,
+        allowTaint: true,
         backgroundColor: '#ffffff',
+        width: 1000,
         windowWidth: 1000
       });
       
       reportElement.style.display = 'none';
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       
-      pdf.save(`Rapport_AgroAnalytics_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`Rapport_Analytique_AgroAnalytics_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`);
     } catch (e) {
       console.error("PDF Export failed", e);
-      alert("Erreur lors de la génération du PDF. Réessayez dans quelques instants.");
+      alert("Erreur lors de la génération. Assurez-vous que la page est bien chargée.");
     } finally {
       setLoading(false);
     }
@@ -204,134 +205,164 @@ export default function Dashboard() {
               <div style={{ position: 'absolute', right: '-50px', bottom: '-50px', width: '300px', height: '300px', backgroundColor: '#10b981', borderRadius: '50%', opacity: 0.1 }}></div>
            </div>
 
-           <div style={{ padding: '50px' }}>
-              {/* Executive Summary Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '50px' }}>
-                  {[
-                    { label: 'Rendement Moyen', val: `${avgYield} t/ha`, icon: 'trending_up', color: '#065f46' },
-                    { label: 'Indice Corrélation', val: correlationVal.toFixed(2), icon: 'bolt', color: '#059669' },
-                    { label: 'Indice Confiance', val: `${confidenceIndex}%`, icon: 'verified', color: '#10b981' },
-                    { label: 'Écart-Type', val: avgStdDev, icon: 'analytics', color: '#34d399' }
-                  ].map((item, i) => (
-                    <div key={i} style={{ padding: '25px 20px', backgroundColor: '#f8fafc', borderRadius: '20px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                      <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', letterSpacing: '1px', margin: '0 0 10px 0', textTransform: 'uppercase' }}>{item.label}</p>
-                      <p style={{ fontSize: '24px', fontWeight: '900', color: item.color, margin: 0 }}>{item.val}</p>
-                    </div>
-                  ))}
-              </div>
-
-              {/* Data Visualization Section */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '50px' }}>
-                <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '30px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#065f46', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%' }}></span>
-                    ANALYSE DE CORRÉLATION (ENGRAIS VS RENDEMENT)
-                  </h3>
-                  <div style={{ height: '350px', width: '100%' }}>
-                      {/* Note: Utiliser des dimensions fixes au lieu de ResponsiveContainer pour l'export PDF */}
-                      <ScatterChart width={520} height={350} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis type="number" dataKey="x" name="Engrais" unit="kg" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                        <YAxis type="number" dataKey="y" name="Rendement" unit="t" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                        <Scatter name="Parcelles" data={getScatterData()} fill="#10b981" />
-                      </ScatterChart>
-                  </div>
+           {/* Master Report Template - Professional Edition */}
+           <div style={{ padding: '40px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
+                <div style={{ backgroundColor: '#f8fafc', padding: '30px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+                   <h4 style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', margin: '0 0 20px 0', textTransform: 'uppercase' }}>Performance Globale</h4>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                         <span style={{ fontSize: '13px', color: '#475569' }}>Coefficient d'efficacité (R²)</span>
+                         <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>{correlationVal.toFixed(3)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                         <span style={{ fontSize: '13px', color: '#475569' }}>Stabilité des rendements</span>
+                         <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>{(100 - parseFloat(avgStdDev) * 10).toFixed(1)}%</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                         <span style={{ fontSize: '13px', color: '#475569' }}>Volume de données traité</span>
+                         <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{totalCollectes} parcelles</span>
+                      </div>
+                   </div>
                 </div>
-
-                <div style={{ backgroundColor: 'white', borderRadius: '24px', padding: '30px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#065f46', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%' }}></span>
-                    RÉPARTITION DES CULTURES
-                  </h3>
-                  <div style={{ height: '350px', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                      <PieChart width={300} height={350}>
-                        <Pie data={getCultureDistribution()} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
-                          {getCultureDistribution().map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                        </Pie>
-                      </PieChart>
-                  </div>
+                
+                <div style={{ backgroundColor: '#064e3b', padding: '30px', borderRadius: '24px', color: 'white' }}>
+                   <h4 style={{ fontSize: '12px', fontWeight: 'bold', opacity: 0.7, margin: '0 0 15px 0', textTransform: 'uppercase' }}>Verdict du Moteur AI</h4>
+                   <p style={{ fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                      {correlationVal > 0.6 
+                        ? "Système à haute performance. La fertilisation est le levier principal. Potentiel d'optimisation par réduction des doses sur les zones saturées."
+                        : "Corrélation modérée. Le facteur limitant n'est pas l'engrais seul. Examinez la qualité du drainage ou les micro-nutriments du sol."}
+                   </p>
                 </div>
               </div>
 
-              {/* AI Analysis Section */}
-              <div style={{ marginBottom: '50px', padding: '40px', backgroundColor: '#064e3b', borderRadius: '30px', color: 'white', backgroundImage: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                    <div style={{ width: '40px', height: '40px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyCenter: 'center' }}>⚡</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>Interprétation Analytique AI</h2>
+              {/* Advanced Statistical Metrics Table */}
+              <div style={{ marginBottom: '40px', backgroundColor: '#ffffff', padding: '30px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+                 <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#064e3b', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                    TABLEAU DES MÉTRIQUES STATISTIQUES AVANCÉES
+                 </h3>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                       <span style={{ fontSize: '13px', color: '#64748b' }}>Variance des rendements (σ²)</span>
+                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a' }}>{avgVariance}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                       <span style={{ fontSize: '13px', color: '#64748b' }}>Écart-Type Global (σ)</span>
+                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a' }}>{avgStdDev} t/ha</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                       <span style={{ fontSize: '13px', color: '#64748b' }}>Coefficient de Pearson (R)</span>
+                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>{correlationVal.toFixed(4)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                       <span style={{ fontSize: '13px', color: '#64748b' }}>Coefficient de Détermination (R²)</span>
+                       <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#059669' }}>{(correlationVal ** 2).toFixed(4)}</span>
+                    </div>
                  </div>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '40px' }}>
-                    <div>
-                      <p style={{ fontSize: '15px', lineHeight: '1.7', opacity: 0.9, margin: 0 }}>
-                        L'analyse consolidée des données transmises indique une corrélation de <span style={{ color: '#34d399', fontWeight: 'bold' }}>{correlationVal.toFixed(2)}</span>. 
-                        {correlationVal > 0.7 
-                          ? " Cette performance traduit une efficacité optimale des intrants. Votre stratégie de fertilisation est le moteur principal de votre productivité." 
-                          : " Cette valeur suggère que des variables tierces (micro-climat, irrigation ciblée) impactent vos résultats autant que la fertilisation."}
-                        La variance de <span style={{ fontWeight: 'bold' }}>{avgVariance}</span> suggère {parseFloat(avgVariance) > 10 ? "une hétérogénéité qui justifie un passage à l'agriculture de précision par parcelle." : "une stabilité exemplaire de votre exploitation."}
-                      </p>
-                    </div>
-                    <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                       <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#34d399', marginBottom: '10px' }}>RECOMMANDATION STRATÉGIQUE</p>
-                       <p style={{ fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
-                         {correlationVal > 0.7 
-                           ? "Maintenez vos doses actuelles mais segmentez l'apport pour réduire les pertes de lessivage sur les sols à faible rétention."
-                           : "Augmentez la fréquence des relevés sur les types de sols secondaires pour identifier les zones de sous-performance."}
-                       </p>
-                    </div>
+                 <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '15px', fontStyle: 'italic' }}>
+                    * Ces indicateurs mesurent la force du lien entre vos intrants et vos résultats réels sur le terrain.
+                 </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }}>
+                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#0f5238', marginBottom: '15px' }}>NUAGE DE POINTS : EFFICIENCE DES INTRANTS</p>
+                    <ScatterChart width={420} height={250}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                       <XAxis type="number" dataKey="x" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                       <YAxis type="number" dataKey="y" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                       <Scatter data={getScatterData()} fill="#10b981" />
+                    </ScatterChart>
+                 </div>
+                 <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#0f5238', marginBottom: '15px' }}>RÉPARTITION PAR TYPE DE CULTURE</p>
+                    <PieChart width={420} height={250}>
+                       <Pie data={getCultureDistribution()} cx="50%" cy="50%" innerRadius={60} outerRadius={85} dataKey="value" stroke="none">
+                          {getCultureDistribution().map((entry, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
+                       </Pie>
+                    </PieChart>
                  </div>
               </div>
 
-              {/* Data Table Section */}
-              <div style={{ pageBreakBefore: 'always', marginTop: '30px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#065f46', marginBottom: '20px' }}>REGISTRE DÉTAILLÉ DES COLLECTES</h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                   <thead>
-                      <tr style={{ backgroundColor: '#f1f5f9' }}>
-                         <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>DATE</th>
-                         <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>PARTICIPANT</th>
-                         <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>CULTURE</th>
-                         <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>LOCALISATION</th>
-                         <th style={{ textAlign: 'right', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>SURFACE</th>
-                         <th style={{ textAlign: 'right', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>ENGRAIS (kg)</th>
-                         <th style={{ textAlign: 'right', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>RENDEMENT (t/ha)</th>
-                      </tr>
-                   </thead>
-                   <tbody>
-                      {collectes.map((c, i) => (
-                         <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '15px', fontSize: '12px' }}>{new Date(c.created_at).toLocaleDateString()}</td>
-                            <td style={{ padding: '15px', fontSize: '12px', fontWeight: 'bold', color: '#065f46' }}>{c.participant_name || 'Anonyme'}</td>
-                            <td style={{ padding: '15px', fontSize: '12px', fontWeight: 'bold', color: '#0f172a' }}>{c.culture_type}</td>
-                            <td style={{ padding: '15px', fontSize: '12px', color: '#64748b' }}>{c.region || 'N/A'}</td>
-                            <td style={{ padding: '15px', fontSize: '12px', textAlign: 'right' }}>{c.surface} ha</td>
-                            <td style={{ padding: '15px', fontSize: '12px', textAlign: 'right' }}>{c.quantite_engrais}</td>
-                            <td style={{ padding: '15px', fontSize: '12px', textAlign: 'right', fontWeight: 'bold', color: '#059669' }}>{c.rendement_final}</td>
-                         </tr>
-                      ))}
-                   </tbody>
-                </table>
+              <div style={{ backgroundColor: '#f8fafc', padding: '30px', borderRadius: '24px', marginBottom: '40px' }}>
+                 <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#064e3b', marginBottom: '20px' }}>ANALYSE COMPARATIVE DES RENDEMENTS</h3>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+                    {stats?.moyennes_rendement_par_culture?.map((m, i) => (
+                      <div key={i} style={{ backgroundColor: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                         <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>{m.culture_type}</p>
+                         <p style={{ fontSize: '18px', fontWeight: '900', color: '#064e3b', margin: 0 }}>{m.rendement_moyen.toFixed(2)} <span style={{ fontSize: '10px', opacity: 0.5 }}>T/HA</span></p>
+                         <p style={{ fontSize: '10px', color: m.rendement_ecart_type < 1 ? '#059669' : '#b91c1c' }}>
+                            {m.rendement_ecart_type < 1 ? '• Stabilité Haute' : '• Forte Variabilité'}
+                         </p>
+                      </div>
+                    ))}
+                 </div>
               </div>
 
-              <div style={{ marginTop: '60px', paddingTop: '30px', borderTop: '1px solid #e2e8f0', textAlign: 'center', color: '#94a3b8', fontSize: '11px' }}>
-                 <p style={{ margin: '0 0 5px 0' }}>Rapport généré automatiquement par le moteur analytique AgroAnalytics AI</p>
-                 <p style={{ fontWeight: 'bold' }}>© 2026 AgroAnalytics Pro • www.agroanalytics.com</p>
+              <div style={{ pageBreakBefore: 'always' }}>
+                 <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#064e3b', marginBottom: '20px' }}>REGISTRE COMPLET DES DONNÉES DE TERRAIN</h3>
+                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+                    <thead>
+                       <tr style={{ backgroundColor: '#064e3b', color: 'white' }}>
+                          <th style={{ padding: '12px', textAlign: 'left' }}>DATE</th>
+                          <th style={{ padding: '12px', textAlign: 'left' }}>PARTICIPANT</th>
+                          <th style={{ padding: '12px', textAlign: 'left' }}>PLANTATION</th>
+                          <th style={{ padding: '12px', textAlign: 'left' }}>CULTURE</th>
+                          <th style={{ padding: '12px', textAlign: 'right' }}>SURFACE</th>
+                          <th style={{ padding: '12px', textAlign: 'right' }}>ENGRAIS (KG)</th>
+                          <th style={{ padding: '12px', textAlign: 'right' }}>RENDEMENT (T)</th>
+                       </tr>
+                    </thead>
+                    <tbody>
+                       {collectes.map((c, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                             <td style={{ padding: '10px' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                             <td style={{ padding: '10px', fontWeight: 'bold' }}>{c.participant_name || '-'}</td>
+                             <td style={{ padding: '10px' }}>{c.plantation_name || '-'}</td>
+                             <td style={{ padding: '10px' }}>{c.culture_type}</td>
+                             <td style={{ padding: '10px', textAlign: 'right' }}>{c.surface}</td>
+                             <td style={{ padding: '10px', textAlign: 'right' }}>{c.quantite_engrais}</td>
+                             <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>{c.rendement_final}</td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+
+              <div style={{ marginTop: '50px', borderTop: '2px solid #064e3b', paddingTop: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '10px' }}>
+                 <p style={{ margin: '0 0 5px 0' }}>Ce document constitue une preuve analytique officielle générée par AgroAnalytics Pro.</p>
+                 <p style={{ fontWeight: 'bold', color: '#064e3b' }}>© 2026 AgroAnalytics Cameroon • Rapport Certifié AI</p>
               </div>
            </div>
         </div>
 
-        {/* Dashboard Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="font-h1 text-h1 text-slate-900 dark:text-white mb-1">Centre Analytique</h1>
-            <p className="font-body-md text-slate-500 dark:text-slate-400">Intelligence de précision • Données consolidées</p>
+
+        {/* Top Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+          <div className="animate-in fade-in slide-in-from-left duration-700">
+            <h1 className="font-h1 text-h1 text-emerald-900 dark:text-emerald-100 mb-2">Centre Analytique</h1>
+            <p className="font-body-md text-slate-500 dark:text-slate-400 max-w-xl italic">
+              "L'intelligence de précision au service de la productivité agricole camerounaise."
+            </p>
           </div>
           <div className="flex gap-3">
-            <button 
-              onClick={exportPDF}
-              className="bg-emerald-50 text-emerald-800 font-bold px-6 py-3 rounded-xl border border-emerald-200 flex items-center gap-2 hover:bg-emerald-100 transition-all active:scale-95 shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[20px]">description</span>
-              Rapport PDF
-            </button>
+             <button 
+               onClick={exportPDF} 
+               disabled={loading}
+               className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-emerald-900/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-3 border-2 border-white/10"
+             >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    GÉNÉRATION...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">analytics</span>
+                    TÉLÉCHARGER LE RAPPORT COMPLET (PDF)
+                  </>
+                )}
+             </button>
             <a 
               href={`${API_BASE}/stats/export`}
               className="bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 hover:brightness-110 transition-all active:scale-95"
@@ -425,7 +456,7 @@ export default function Dashboard() {
             </h3>
             <div className="flex-grow relative z-0 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800">
               <MapContainer center={[4, 12]} zoom={6} style={{ height: '400px', width: '100%' }}>
-                <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 {collectes.filter(c => c.latitude && c.longitude).map(c => (
                   <Marker key={c.id_collecte} position={[c.latitude, c.longitude]}>
                     <Popup>

@@ -16,7 +16,7 @@ export default function Layout({ children }) {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
             <span className="material-symbols-outlined text-[18px]">potted_plant</span>
           </div>
-          <span className="text-lg font-bold text-primary dark:text-emerald-100 tracking-tight font-h1">AgroAnalytics</span>
+          <span className="text-lg font-black text-primary dark:text-white tracking-tight font-h1">AgroAnalytics</span>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={toggleDarkMode} className="p-2 text-slate-400">
@@ -36,8 +36,8 @@ export default function Layout({ children }) {
 
         <div className="flex flex-col gap-2 flex-grow overflow-hidden">
           <div className={`p-2 mb-6 ${isSidebarCollapsed ? 'text-center' : ''}`}>
-            <p className="text-xl font-black text-primary dark:text-emerald-100">{isSidebarCollapsed ? 'AA' : 'AgroAnalytics'}</p>
-            {!isSidebarCollapsed && <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Precision Farming</p>}
+            <p className="text-xl font-black text-primary dark:text-white">{isSidebarCollapsed ? 'AA' : 'AgroAnalytics'}</p>
+            {!isSidebarCollapsed && <p className="text-[10px] text-emerald-600 dark:text-emerald-300 font-bold uppercase tracking-widest">Precision Farming</p>}
           </div>
 
           <nav className="space-y-2">

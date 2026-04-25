@@ -543,6 +543,18 @@ input, select, textarea { font-family: inherit; }
   box-shadow: 0 0 0 2px rgba(15, 82, 56, 0.1);
 }
 
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.dark input::placeholder {
+  color: #64748b !important;
+}
+
 .input-field::placeholder {
   color: var(--outline);
 }
