@@ -61,15 +61,20 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const reportElement = reportRef.current;
+      // Au lieu de block/none, on utilise la visibilité pour que les graphiques soient rendus
+      reportElement.style.position = 'fixed';
+      reportElement.style.left = '0';
+      reportElement.style.top = '0';
+      reportElement.style.zIndex = '-1000';
       reportElement.style.display = 'block';
       
       // Laisser un court délai pour que les graphiques Recharts se dessinent
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const canvas = await html2canvas(reportElement, {
-        scale: 2, // Haute résolution
+        scale: 2,
         useCORS: true,
-        logging: false,
+        logging: true,
         backgroundColor: '#ffffff',
         windowWidth: 1000
       });
@@ -81,24 +86,12 @@ export default function Dashboard() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      // Gestion multi-pages basique si le rapport est très long
-      let heightLeft = pdfHeight;
-      let position = 0;
-      const pageHeight = 297;
-
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(`Rapport_Strategique_AgroAnalytics_${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      pdf.save(`Rapport_AgroAnalytics_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (e) {
       console.error("PDF Export failed", e);
+      alert("Erreur lors de la génération du PDF. Réessayez dans quelques instants.");
     } finally {
       setLoading(false);
     }

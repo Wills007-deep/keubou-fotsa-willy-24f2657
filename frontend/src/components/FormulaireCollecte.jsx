@@ -265,7 +265,7 @@ export default function FormulaireCollecte() {
           <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour évaluer le rapport engrais / rendement.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-gutter">
+        <form onSubmit={handleSubmit} className="flex flex-col-reverse lg:grid lg:grid-cols-12 gap-gutter">
           <div className="col-span-12 lg:col-span-8 space-y-gutter">
             {/* Step 1 */}
             <div className="bg-white rounded-[16px] p-8 shadow-sm border border-emerald-900/5">
