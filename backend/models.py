@@ -92,8 +92,8 @@ class CollecteCreate(CollecteBase):
     def validate_culture_type(cls, v: str) -> str:
         if len(v.strip()) < 3:
             raise ValueError("Le type de culture doit contenir au moins 3 caractères cohérents.")
-        if v.isdigit():
-            raise ValueError("Le type de culture ne peut pas être composé uniquement de chiffres.")
+        if any(char.isdigit() for char in v):
+            raise ValueError("Le type de culture ne peut pas contenir de chiffres. Veuillez entrer un nom de plante valide.")
         return v.strip()
 
     @field_validator('surface', 'quantite_engrais', 'rendement_final')

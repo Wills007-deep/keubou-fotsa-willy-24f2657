@@ -148,8 +148,8 @@ export default function FormulaireCollecte() {
           ...prev, 
           latitude, 
           longitude, 
-          nom_lieu: prev.nom_lieu || placeName,
-          region: detectedRegion || prev.region // Auto-populate region if detected
+          nom_lieu: placeName, // Overwrite immediately
+          region: detectedRegion || prev.region // Overwrite if detected
         }));
         setSelectedLocation([latitude, longitude]);
       }
@@ -178,8 +178,8 @@ export default function FormulaireCollecte() {
         newErrors.custom_culture = 'Veuillez préciser le nom de la culture.';
       } else if (custom.length < 3) {
         newErrors.custom_culture = 'Le nom de la culture doit être explicite (min. 3 caractères).';
-      } else if (/^\d+$/.test(custom)) {
-        newErrors.custom_culture = 'Le nom de la culture ne peut pas être composé uniquement de chiffres.';
+      } else if (/\d/.test(custom)) {
+        newErrors.custom_culture = 'Le nom de la culture ne peut pas contenir de chiffres.';
       }
     }
 
@@ -257,9 +257,12 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.plantation_name ? 'text-red-500' : 'text-slate-400'}`}>NOM PLANTATION *</label>
-                  <input name="plantation_name" value={formData.plantation_name} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.plantation_name ? 'border-red-500 bg-red-50' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Ex. Ferme de Njombé" />
-                  {errors.plantation_name && <p className="text-[10px] text-red-500 font-bold">{errors.plantation_name}</p>}
+                  <label className={`font-label-caps text-label-caps ${errors.plantation_name ? 'text-red-600 font-black' : 'text-slate-400'}`}>
+                    {errors.plantation_name && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                    NOM PLANTATION *
+                  </label>
+                  <input name="plantation_name" value={formData.plantation_name} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.plantation_name ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Ex. Ferme de Njombé" />
+                  {errors.plantation_name && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.plantation_name}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400">OPÉRATEUR</label>
@@ -268,18 +271,24 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.culture_type ? 'text-red-500' : 'text-slate-400'}`}>TYPE DE CULTURE *</label>
-                  <select name="culture_type" value={formData.culture_type} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.culture_type ? 'border-red-500 bg-red-50' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md bg-white transition-all`}>
+                  <label className={`font-label-caps text-label-caps ${errors.culture_type ? 'text-red-600 font-black' : 'text-slate-400'}`}>
+                    {errors.culture_type && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                    TYPE DE CULTURE *
+                  </label>
+                  <select name="culture_type" value={formData.culture_type} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.culture_type ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md bg-white transition-all`}>
                     <option value="">Choisir...</option>
                     {cropOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  {errors.culture_type && <p className="text-[10px] text-red-500 font-bold">{errors.culture_type}</p>}
+                  {errors.culture_type && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.culture_type}</p>}
                 </div>
                 {formData.culture_type === 'Autre' && (
                   <div className="space-y-sm">
-                    <label className={`font-label-caps text-label-caps ${errors.custom_culture ? 'text-red-500' : 'text-slate-400'}`}>PRÉCISER CULTURE *</label>
-                    <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.custom_culture ? 'border-red-500 bg-red-50' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Ex. Poivre de Penja" />
-                    {errors.custom_culture && <p className="text-[10px] text-red-500 font-bold">{errors.custom_culture}</p>}
+                    <label className={`font-label-caps text-label-caps ${errors.custom_culture ? 'text-red-600 font-black' : 'text-slate-400'}`}>
+                      {errors.custom_culture && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                      PRÉCISER CULTURE *
+                    </label>
+                    <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.custom_culture ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Ex. Poivre de Penja" />
+                    {errors.custom_culture && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.custom_culture}</p>}
                   </div>
                 )}
               </div>
@@ -293,12 +302,15 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.region ? 'text-red-500' : 'text-slate-400'} uppercase tracking-widest`}>Région *</label>
-                  <select name="region" value={formData.region} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.region ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md bg-white transition-all`}>
+                  <label className={`font-label-caps text-label-caps ${errors.region ? 'text-red-600 font-black' : 'text-slate-400'} uppercase tracking-widest`}>
+                    {errors.region && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                    Région *
+                  </label>
+                  <select name="region" value={formData.region} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.region ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} font-body-md bg-white transition-all`}>
                     <option value="">Sélectionner Région</option>
                     {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
-                  {errors.region && <p className="text-[10px] text-red-500 font-bold">{errors.region}</p>}
+                  {errors.region && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.region}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Type de Sol (Optionnel)</label>
@@ -322,14 +334,20 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-8">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-xs ${errors.surface ? 'text-red-500' : 'text-slate-400'}`}>SURFACE (HA) *</label>
-                  <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className={`w-full px-4 py-3 rounded-xl border ${errors.surface ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md transition-all`} />
-                  {errors.surface && <p className="text-[10px] text-red-500 font-bold">{errors.surface}</p>}
+                  <label className={`font-label-caps text-xs ${errors.surface ? 'text-red-600 font-black' : 'text-slate-400'}`}>
+                    {errors.surface && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                    SURFACE (HA) *
+                  </label>
+                  <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className={`w-full px-4 py-3 rounded-xl border-2 ${errors.surface ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md transition-all`} />
+                  {errors.surface && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.surface}</p>}
                 </div>
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-xs ${errors.quantite_engrais ? 'text-red-500' : 'text-slate-400'}`}>ENGRAIS (KG) *</label>
-                  <input name="quantite_engrais" value={formData.quantite_engrais} onChange={handleInputChange} type="number" className={`w-full px-4 py-3 rounded-xl border ${errors.quantite_engrais ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md transition-all`} />
-                  {errors.quantite_engrais && <p className="text-[10px] text-red-500 font-bold">{errors.quantite_engrais}</p>}
+                  <label className={`font-label-caps text-xs ${errors.quantite_engrais ? 'text-red-600 font-black' : 'text-slate-400'}`}>
+                    {errors.quantite_engrais && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                    ENGRAIS (KG) *
+                  </label>
+                  <input name="quantite_engrais" value={formData.quantite_engrais} onChange={handleInputChange} type="number" className={`w-full px-4 py-3 rounded-xl border-2 ${errors.quantite_engrais ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md transition-all`} />
+                  {errors.quantite_engrais && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.quantite_engrais}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-xs text-slate-400">EAU (m³) - OPTIONNEL</label>
@@ -338,9 +356,12 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.rendement_final ? 'text-red-500 font-bold' : 'text-primary font-bold'}`}>RENDEMENT FINAL (TONS) *</label>
+                  <label className={`font-label-caps text-label-caps ${errors.rendement_final ? 'text-red-600 font-black' : 'text-primary font-bold'}`}>
+                    {errors.rendement_final && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                    RENDEMENT FINAL (TONS) *
+                  </label>
                   <input name="rendement_final" value={formData.rendement_final} onChange={handleInputChange} type="number" className={`w-full px-4 py-4 rounded-xl border-2 ${errors.rendement_final ? 'border-red-500 bg-red-50' : 'border-primary/20 bg-emerald-50/30'} text-xl font-bold text-primary transition-all`} />
-                  {errors.rendement_final && <p className="text-[10px] text-red-500 font-bold">{errors.rendement_final}</p>}
+                  {errors.rendement_final && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.rendement_final}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400">DATE RÉCOLTE</label>
