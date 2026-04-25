@@ -163,17 +163,15 @@ export default function FormulaireCollecte() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const validateForm = () => {
     const newErrors = {};
     
-    // Participant validation
-    if (!formData.participant_name || formData.participant_name.length < 2) {
-      newErrors.participant_name = "Le nom du participant est obligatoire (min. 2 caractères).";
+    // Participant Name validation
+    if (!formData.participant_name || formData.participant_name.trim().length < 2) {
+      newErrors.participant_name = "Votre nom est obligatoire pour le suivi collaboratif (min. 2 caractères).";
     }
 
     // Culture validation
@@ -239,15 +237,20 @@ export default function FormulaireCollecte() {
 
       if (isEdit) {
         await axios.put(`${API_BASE}/collectes/${collecteId}`, payload);
+        alert("Collecte modifiée avec succès !");
       } else {
         await axios.post(`${API_BASE}/collectes/`, payload);
+        alert("Nouvelle collecte enregistrée avec succès !");
       }
       navigate('/collectes');
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur complète:', error);
+      const msg = error.response?.data?.detail || "Erreur de connexion au serveur.";
+      alert("Erreur lors de la sauvegarde : " + msg);
       setErrors({ submit: 'Erreur lors de la sauvegarde. Vérifiez les champs.' });
     } finally {
       setLoading(false);
+    }
     }
   };
 
