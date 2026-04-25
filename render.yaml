@@ -9,7 +9,7 @@ services:
     numInstances: 1
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.9"
       - key: DATABASE_URL
         scope: runtime
         value: postgresql://postgres:O6mYavjmmK6LddDY@db.dhgqfdrjuxrlabopqfvo.supabase.co:5432/postgres
