@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [collectes, setCollectes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const reportRef = useRef(null);
 
   useEffect(() => {
@@ -30,15 +31,24 @@ export default function Dashboard() {
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
+      // Ajout d'un timeout de 15 secondes pour éviter le blocage infini
+      const config = { timeout: 15000 };
+      
       const [statsRes, collectesRes] = await Promise.all([
-        axios.get(`${API_BASE}/stats/`),
-        axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`)
+        axios.get(`${API_BASE}/stats/`, config),
+        axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`, config)
       ]);
+      
       setStats(statsRes.data || {});
       setCollectes(collectesRes.data || []);
-    } catch (error) {
-      console.error('Erreur API:', error);
+    } catch (err) {
+      console.error('Erreur API:', err);
+      setError(err.code === 'ECONNABORTED' 
+        ? "Le serveur met trop de temps à répondre. Il est peut-être en train de redémarrer." 
+        : "Impossible de récupérer les analyses. Vérifiez votre connexion au serveur.");
       setStats({}); 
       setCollectes([]);
     } finally {
@@ -97,11 +107,34 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-white dark:bg-slate-950">
+      <div className="w-full h-[80vh] flex items-center justify-center bg-white dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4 text-center">
            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
            <div className="text-emerald-900 dark:text-emerald-100 font-bold animate-pulse text-sm uppercase tracking-widest">Génération des analyses en cours...</div>
            <p className="text-xs text-slate-400 font-mono">Connexion au serveur : {API_BASE}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-[80vh] flex items-center justify-center bg-white dark:bg-slate-950 p-8">
+        <div className="max-w-md w-full bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-3xl p-8 text-center space-y-6">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 rounded-2xl flex items-center justify-center text-red-600 mx-auto">
+            <span className="material-symbols-outlined text-3xl">cloud_off</span>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-black text-red-900 dark:text-red-100">Oups ! Connexion Difficile</h3>
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium leading-relaxed">{error}</p>
+          </div>
+          <button 
+            onClick={fetchData}
+            className="w-full bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-900/50 py-3 rounded-xl font-bold hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined">refresh</span>
+            Réessayer la connexion
+          </button>
         </div>
       </div>
     );
