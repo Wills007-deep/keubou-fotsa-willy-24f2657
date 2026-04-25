@@ -349,34 +349,21 @@ export default function FormulaireCollecte() {
                 </div>
               </div>
               <div className="space-y-sm">
-                <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE (Tapez une ville ou village)</label>
-                <div className="flex gap-2">
-                  <input 
-                    name="nom_lieu" 
-                    value={formData.nom_lieu} 
-                    onChange={handleInputChange} 
-                    onBlur={() => {
-                      if (formData.nom_lieu && !selectedLocation) {
-                        setSearchQuery(formData.nom_lieu);
-                        handleSearchLocation();
-                      }
-                    }}
-                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 font-body-md" 
-                    placeholder="Ex: Okola, Cameroun" 
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => {
+                <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE</label>
+                <input 
+                  name="nom_lieu" 
+                  value={formData.nom_lieu} 
+                  onChange={handleInputChange} 
+                  onBlur={() => {
+                    if (formData.nom_lieu && !selectedLocation) {
                       setSearchQuery(formData.nom_lieu);
-                      setTimeout(handleSearchLocation, 100);
-                    }}
-                    className="bg-emerald-50 text-primary border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-100 transition-all font-bold text-xs"
-                  >
-                    <span className="material-symbols-outlined text-sm">map</span>
-                    Localiser
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-400 italic">Cliquez sur "Localiser" pour placer automatiquement le point sur la carte.</p>
+                      handleSearchLocation();
+                    }
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" 
+                  placeholder="Ex: Okola, Cameroun" 
+                />
+                <p className="text-[10px] text-slate-400 italic">Utilisez la barre de recherche à droite ou cliquez sur "OK" pour placer le point.</p>
               </div>
             </div>
 
