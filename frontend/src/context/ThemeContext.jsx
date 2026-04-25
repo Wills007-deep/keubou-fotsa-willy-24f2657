@@ -6,6 +6,7 @@ export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
       const saved = localStorage.getItem('agroanalytics-theme');
+      // If no saved preference, ALWAYS default to light (false)
       if (saved) return saved === 'dark';
       return false;
     } catch (e) {

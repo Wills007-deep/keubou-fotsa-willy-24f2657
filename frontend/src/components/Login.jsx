@@ -16,12 +16,23 @@ export default function Login() {
   const location = useLocation();
 
   React.useEffect(() => {
+    // Force Light Mode if no preference is set or to comply with user request
+    if (!localStorage.getItem('agroanalytics-theme')) {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Check if user should have seen onboarding
+    if (!localStorage.getItem('onboarding_seen') && !location.search.includes('mode=')) {
+      navigate('/onboarding');
+    }
+
     const params = new URLSearchParams(location.search);
     const m = params.get('mode');
     if (m === 'register' || m === 'login') {
       setMode(m);
+      localStorage.setItem('onboarding_seen', 'true');
     }
-  }, [location]);
+  }, [location, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

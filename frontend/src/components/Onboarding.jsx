@@ -119,14 +119,20 @@ export default function Onboarding() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                 <button 
-                  onClick={() => navigate('/login?mode=login')}
+                  onClick={() => {
+                    localStorage.setItem('onboarding_seen', 'true');
+                    navigate('/login?mode=login');
+                  }}
                   className="bg-white border-2 border-[#2D6A4F] text-[#2D6A4F] px-8 py-4 rounded-2xl font-black text-lg hover:bg-emerald-50 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-lg"
                 >
                   <span className="material-symbols-outlined">login</span>
                   Se Connecter
                 </button>
                 <button 
-                  onClick={() => navigate('/login?mode=register')}
+                  onClick={() => {
+                    localStorage.setItem('onboarding_seen', 'true');
+                    navigate('/login?mode=register');
+                  }}
                   className="bg-[#2D6A4F] text-white px-8 py-4 rounded-2xl font-black text-lg shadow-xl shadow-emerald-900/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
                   <span className="material-symbols-outlined">person_add</span>

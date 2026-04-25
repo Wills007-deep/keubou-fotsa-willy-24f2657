@@ -140,16 +140,16 @@ export default function FormulaireCollecte() {
         const longitude = parseFloat(lon);
         const placeName = display_name.split(',')[0];
         
-        // Auto-detect region from location
-        const detectedRegion = getRegionFromLocation(placeName) || getRegionFromLocation(display_name);
+        const cleanPlaceName = placeName.split(',')[0].trim();
+        const detectedRegion = getRegionFromLocation(cleanPlaceName) || getRegionFromLocation(display_name);
         
         setMapCenter([latitude, longitude]);
         setFormData(prev => ({ 
           ...prev, 
           latitude, 
           longitude, 
-          nom_lieu: placeName, // Overwrite immediately
-          region: detectedRegion || prev.region // Overwrite if detected
+          nom_lieu: cleanPlaceName,
+          region: detectedRegion || prev.region
         }));
         setSelectedLocation([latitude, longitude]);
       }
@@ -178,8 +178,8 @@ export default function FormulaireCollecte() {
         newErrors.custom_culture = 'Veuillez préciser le nom de la culture.';
       } else if (custom.length < 3) {
         newErrors.custom_culture = 'Le nom de la culture doit être explicite (min. 3 caractères).';
-      } else if (/\d/.test(custom)) {
-        newErrors.custom_culture = 'Le nom de la culture ne peut pas contenir de chiffres.';
+      } else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(custom)) {
+        newErrors.custom_culture = 'Le nom de la culture ne peut contenir que des lettres (pas de chiffres ni de symboles).';
       }
     }
 
@@ -200,12 +200,17 @@ export default function FormulaireCollecte() {
     
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
+      console.warn("Validation errors found:", newErrors);
       // Scroll to the first error
       const firstError = Object.keys(newErrors)[0];
       const element = document.getElementsByName(firstError)[0];
-      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus(); // Focus the field
+      }
+      return false;
     }
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleSubmit = async (e) => {
