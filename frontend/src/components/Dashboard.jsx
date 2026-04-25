@@ -53,7 +53,10 @@ export default function Dashboard() {
       setCollectes([]);
     } finally {
       setLoading(false);
-      const exportPDF = async () => {
+    }
+  };
+
+  const exportPDF = async () => {
     if (!reportRef.current) return;
     setLoading(true);
     try {
