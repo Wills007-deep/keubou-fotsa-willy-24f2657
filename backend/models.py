@@ -20,7 +20,8 @@ class User(Base):
 class Collecte(Base):
     __tablename__ = "collectes"
     id_collecte = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True) # Rendu optionnel
+    participant_name = Column(String(255), nullable=True) # Nouveau champ
     culture_type = Column(String(100), nullable=False)
     plantation_name = Column(String(255), nullable=True)
     operator = Column(String(255), nullable=True)
@@ -73,6 +74,7 @@ class TokenData(BaseModel):
 # --- Collecte Schemas ---
 class CollecteBase(BaseModel):
     culture_type: str
+    participant_name: Optional[str] = None
     plantation_name: Optional[str] = None
     operator: Optional[str] = None
     surface: float
@@ -105,6 +107,7 @@ class CollecteCreate(CollecteBase):
 
 class CollecteUpdate(BaseModel):
     culture_type: Optional[str] = None
+    participant_name: Optional[str] = None
     plantation_name: Optional[str] = None
     operator: Optional[str] = None
     surface: Optional[float] = None
@@ -120,6 +123,7 @@ class CollecteUpdate(BaseModel):
 
 class CollecteResponse(CollecteBase):
     id_collecte: str
+    user_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)

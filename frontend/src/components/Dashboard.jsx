@@ -291,6 +291,7 @@ export default function Dashboard() {
                    <thead>
                       <tr style={{ backgroundColor: '#f1f5f9' }}>
                          <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>DATE</th>
+                         <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>PARTICIPANT</th>
                          <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>CULTURE</th>
                          <th style={{ textAlign: 'left', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>LOCALISATION</th>
                          <th style={{ textAlign: 'right', padding: '15px', fontSize: '11px', color: '#64748b', borderBottom: '2px solid #e2e8f0' }}>SURFACE</th>
@@ -302,6 +303,7 @@ export default function Dashboard() {
                       {collectes.map((c, i) => (
                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
                             <td style={{ padding: '15px', fontSize: '12px' }}>{new Date(c.created_at).toLocaleDateString()}</td>
+                            <td style={{ padding: '15px', fontSize: '12px', fontWeight: 'bold', color: '#065f46' }}>{c.participant_name || 'Anonyme'}</td>
                             <td style={{ padding: '15px', fontSize: '12px', fontWeight: 'bold', color: '#0f172a' }}>{c.culture_type}</td>
                             <td style={{ padding: '15px', fontSize: '12px', color: '#64748b' }}>{c.region || 'N/A'}</td>
                             <td style={{ padding: '15px', fontSize: '12px', textAlign: 'right' }}>{c.surface} ha</td>

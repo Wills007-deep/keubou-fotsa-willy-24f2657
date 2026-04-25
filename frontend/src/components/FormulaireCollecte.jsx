@@ -40,6 +40,7 @@ export default function FormulaireCollecte() {
   const [isEdit, setIsEdit] = useState(!!collecteId);
   
   const [formData, setFormData] = useState({
+    participant_name: '',
     culture_type: '',
     custom_culture: '',
     plantation_name: '',
@@ -88,6 +89,7 @@ export default function FormulaireCollecte() {
       const collecte = response.data;
       const isCustom = !cropOptions.includes(collecte.culture_type);
       setFormData({
+        participant_name: collecte.participant_name || '',
         culture_type: isCustom ? 'Autre' : collecte.culture_type,
         custom_culture: isCustom ? collecte.culture_type : '',
         plantation_name: collecte.plantation_name || '',
@@ -169,6 +171,11 @@ export default function FormulaireCollecte() {
   const validateForm = () => {
     const newErrors = {};
     
+    // Participant validation
+    if (!formData.participant_name || formData.participant_name.length < 2) {
+      newErrors.participant_name = "Le nom du participant est obligatoire (min. 2 caractères).";
+    }
+
     // Culture validation
     if (!formData.culture_type) {
       newErrors.culture_type = "La sélection d'une culture est obligatoire.";
@@ -249,7 +256,7 @@ export default function FormulaireCollecte() {
       <section className="p-4 md:p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h2 className="font-h2 text-h2 text-emerald-900 mb-2">{isEdit ? 'Modifier la Collecte' : 'Nouvelle Collecte AgroAnalytics'}</h2>
-          <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour améliorer vos futurs rendements.</p>
+          <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour évaluer le rapport engrais / rendement.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-gutter">
@@ -258,8 +265,18 @@ export default function FormulaireCollecte() {
             <div className="bg-white rounded-[16px] p-8 shadow-sm border border-emerald-900/5">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">1</div>
-                <h3 className="font-h3 text-h3 text-emerald-900">Culture & Plantation</h3>
+                <h3 className="font-h3 text-h3 text-emerald-900">Identification & Plantation</h3>
               </div>
+              
+              <div className="space-y-sm mb-6">
+                <label className={`font-label-caps text-label-caps ${errors.participant_name ? 'text-red-600 font-black' : 'text-slate-400'}`}>
+                  {errors.participant_name && <span className="material-symbols-outlined text-xs mr-1">error</span>}
+                  NOM DU PARTICIPANT (VOUS) *
+                </label>
+                <input name="participant_name" value={formData.participant_name} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.participant_name ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Votre nom complet" />
+                {errors.participant_name && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.participant_name}</p>}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
                   <label className={`font-label-caps text-label-caps ${errors.plantation_name ? 'text-red-600 font-black' : 'text-slate-400'}`}>
@@ -270,8 +287,8 @@ export default function FormulaireCollecte() {
                   {errors.plantation_name && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.plantation_name}</p>}
                 </div>
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-slate-400">OPÉRATEUR</label>
-                  <input name="operator" value={formData.operator} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Nom de l'agronome" />
+                  <label className="font-label-caps text-label-caps text-slate-400">OPÉRATEUR DE TERRAIN</label>
+                  <input name="operator" value={formData.operator} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Agronome responsable" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">

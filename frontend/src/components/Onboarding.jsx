@@ -3,20 +3,20 @@ import { useNavigate } from 'react-router-dom';
 
 const slides = [
   {
-    title: "Le Défi de la Précision",
-    description: "Dans le cadre d'un tp en analyse de donner. Le secteur agricole souffre souvent d'un manque de précision dans la collecte des données, ce qui freine l'optimisation des rendements et la prise de décision éclairée.",
+    title: "Analyse Scientifique",
+    description: "Bienvenue dans votre outil de TP. Notre mission est d'évaluer scientifiquement le rapport entre la quantité d'engrais utilisée et le rendement final d'une parcelle.",
     image: "/images/onboarding/problem.png",
     color: "#2D6A4F"
   },
   {
-    title: "La Solution AgroAnalytics",
-    description: "AgroAnalytics apporte une solution de précision moderne. Capturez vos données parcellaires en quelques clics, géolocalisez vos exploitations et suivez vos intrants avec une rigueur scientifique.",
+    title: "Collecte Collaborative",
+    description: "Enregistrez vos données de terrain et accédez instantanément aux relevés de vos collègues. La collaboration est la clé d'une analyse descriptive pertinente.",
     image: "/images/onboarding/solution.png",
     color: "#1B4332"
   },
   {
-    title: "Intelligence Décisionnelle",
-    description: "Prenez des décisions basées sur la science. Visualisez vos performances en temps réel, analysez les corrélations entre engrais et rendement, et boostez votre productivité grâce à nos outils analytiques.",
+    title: "Décision par la Donnée",
+    description: "Visualisez les corrélations et optimisez les intrants. Transformez vos collectes en indicateurs de performance pour une agriculture de précision moderne.",
     image: "/images/onboarding/analytics.png",
     color: "#081c15"
   }
@@ -36,6 +36,11 @@ export default function Onboarding() {
     if (currentSlide > 0) {
       setCurrentSlide(currentSlide - 1);
     }
+  };
+
+  const handleStart = () => {
+    localStorage.setItem('onboarding_seen', 'true');
+    navigate('/');
   };
 
   return (
@@ -76,7 +81,7 @@ export default function Onboarding() {
         <div className="w-full lg:w-1/2 space-y-8 text-center lg:text-left">
           <div className="space-y-4">
             <div className="inline-flex px-4 py-1.5 rounded-full bg-emerald-50 text-[#2D6A4F] text-xs font-black uppercase tracking-widest border border-emerald-100">
-              Slide {currentSlide + 1} / {slides.length}
+              Étape {currentSlide + 1} / {slides.length}
             </div>
             <h1 className="text-4xl lg:text-6xl font-black text-[#1B4332] leading-tight transition-all duration-500">
               {slides[currentSlide].title}
@@ -117,28 +122,13 @@ export default function Onboarding() {
                 </button>
               </>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                <button 
-                  onClick={() => {
-                    localStorage.setItem('onboarding_seen', 'true');
-                    navigate('/login?mode=login');
-                  }}
-                  className="bg-white border-2 border-[#2D6A4F] text-[#2D6A4F] px-8 py-4 rounded-2xl font-black text-lg hover:bg-emerald-50 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-lg"
-                >
-                  <span className="material-symbols-outlined">login</span>
-                  Se Connecter
-                </button>
-                <button 
-                  onClick={() => {
-                    localStorage.setItem('onboarding_seen', 'true');
-                    navigate('/login?mode=register');
-                  }}
-                  className="bg-[#2D6A4F] text-white px-8 py-4 rounded-2xl font-black text-lg shadow-xl shadow-emerald-900/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3"
-                >
-                  <span className="material-symbols-outlined">person_add</span>
-                  S'inscrire
-                </button>
-              </div>
+              <button 
+                onClick={handleStart}
+                className="w-full bg-[#2D6A4F] text-white px-12 py-4 rounded-2xl font-black text-lg shadow-xl shadow-emerald-900/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3"
+              >
+                Commencer l'Étude
+                <span className="material-symbols-outlined">analytics</span>
+              </button>
             )}
           </div>
         </div>

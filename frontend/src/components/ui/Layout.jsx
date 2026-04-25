@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function Layout({ children }) {
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useTheme();
-  const { user, logout } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
@@ -21,9 +19,6 @@ export default function Layout({ children }) {
           <span className="text-lg font-bold text-primary dark:text-emerald-100 tracking-tight font-h1">AgroAnalytics</span>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={logout} className="p-2 text-slate-400">
-            <span className="material-symbols-outlined">logout</span>
-          </button>
           <button onClick={toggleDarkMode} className="p-2 text-slate-400">
             <span className="material-symbols-outlined">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
           </button>
@@ -44,19 +39,6 @@ export default function Layout({ children }) {
             <p className="text-xl font-black text-primary dark:text-emerald-100">{isSidebarCollapsed ? 'AA' : 'AgroAnalytics'}</p>
             {!isSidebarCollapsed && <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Precision Farming</p>}
           </div>
-
-          {/* User Info */}
-          {!isSidebarCollapsed && user && (
-            <div className="px-4 py-3 mb-6 bg-emerald-50 dark:bg-slate-800/50 rounded-2xl border border-emerald-100 dark:border-slate-800 flex items-center gap-3">
-               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs">
-                 {user.full_name?.charAt(0) || 'U'}
-               </div>
-               <div className="min-w-0">
-                 <p className="text-xs font-bold text-emerald-900 dark:text-white truncate">{user.full_name}</p>
-                 <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
-               </div>
-            </div>
-          )}
 
           <nav className="space-y-2">
             <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === '/' ? 'bg-emerald-50 dark:bg-emerald-900/40 text-primary dark:text-emerald-100 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'} ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}>
@@ -86,13 +68,6 @@ export default function Layout({ children }) {
              >
                <span className="material-symbols-outlined">{isDarkMode ? 'light_mode' : 'dark_mode'}</span>
                {!isSidebarCollapsed && <span className="text-sm font-medium">{isDarkMode ? 'Mode Clair' : 'Mode Sombre'}</span>}
-             </button>
-             <button 
-               onClick={logout}
-               className={`w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
-             >
-               <span className="material-symbols-outlined">logout</span>
-               {!isSidebarCollapsed && <span className="text-sm font-medium">Déconnexion</span>}
              </button>
           </div>
         </div>
