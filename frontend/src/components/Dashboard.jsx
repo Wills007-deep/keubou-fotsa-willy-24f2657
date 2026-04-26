@@ -446,7 +446,7 @@ export default function Dashboard() {
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={getCultureDistribution()} cx="50%" cy="50%" outerRadius={100} dataKey="value" stroke="#fff" strokeWidth={2} label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={getCultureDistribution()} cx="50%" cy="50%" outerRadius={110} dataKey="value" stroke="#fff" strokeWidth={2}>
                     {getCultureDistribution().map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(value, name) => [`${value} parcelle(s)`, name]} />
