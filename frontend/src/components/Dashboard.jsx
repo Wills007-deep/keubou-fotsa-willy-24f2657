@@ -165,14 +165,11 @@ export default function Dashboard() {
   const rSquared = (correlationVal ** 2).toFixed(4);
   const confidenceIndex = (Math.abs(correlationVal) * 100 * Math.min(totalCollectes / 10, 1)).toFixed(1);
 
-  const avgVariance = stats?.moyennes_rendement_par_culture?.length > 0
-    ? (stats.moyennes_rendement_par_culture.reduce((sum, c) => sum + (c.rendement_ecart_type ** 2), 0) / stats.moyennes_rendement_par_culture.length).toFixed(2)
-    : 0;
-  const avgStdDev = Math.sqrt(parseFloat(avgVariance)).toFixed(2);
-  // Erreur standard = σ / √n
-  const standardError = totalCollectes > 0
-    ? (parseFloat(avgStdDev) / Math.sqrt(totalCollectes)).toFixed(4)
-    : 0;
+  // Statistiques globales correctes calculées côté backend (ddof=1, numpy)
+  const sg = stats?.stats_globales;
+  const avgVariance    = sg?.variance      != null ? Number(sg.variance).toFixed(4)       : 'N/A';
+  const avgStdDev      = sg?.ecart_type    != null ? Number(sg.ecart_type).toFixed(4)     : 'N/A';
+  const standardError  = sg?.erreur_standard != null ? Number(sg.erreur_standard).toFixed(6) : 'N/A';
 
   const totalSurface = collectes.reduce((s, c) => s + (c.surface || 0), 0).toFixed(2);
   const totalEngrais = collectes.reduce((s, c) => s + (c.quantite_engrais || 0), 0);
