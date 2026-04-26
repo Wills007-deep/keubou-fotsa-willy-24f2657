@@ -33,6 +33,6 @@ services:
     healthCheckPath: /
     healthCheckInterval: 60
     buildTimeout: 900
-    startTimeout: 60
+    startTimeout: 300
 
 previewsEnabled: false
