@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
-import { getRegionFromLocation } from '../utils/locationMapping';
+import { getRegionFromLocation, getRegionFromNominatimState } from '../utils/locationMapping';
 
 const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://keubou-fotsa-willy-24f2657.onrender.com/api');
 
@@ -132,32 +132,49 @@ export default function FormulaireCollecte() {
     setSelectedLocation([lat, lng]);
   };
 
+
   const handleSearchLocation = async () => {
     if (!searchQuery) return;
     try {
-      // On ajoute countrycodes=cm pour forcer la recherche au Cameroun
-      const response = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=cm&limit=1`);
+      // addressdetails=1 retourne la structure d'adresse complète avec state, county, etc.
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=cm&limit=1&addressdetails=1`
+      );
       if (response.data && response.data.length > 0) {
-        const { lat, lon, display_name } = response.data[0];
+        const result = response.data[0];
+        const { lat, lon, display_name, address } = result;
         const latitude = parseFloat(lat);
         const longitude = parseFloat(lon);
         
-        // On centre la carte et on place le marqueur
         setMapCenter([latitude, longitude]);
         setSelectedLocation([latitude, longitude]);
         
-        const placeName = display_name.split(',')[0];
-        const detectedRegion = getRegionFromLocation(display_name);
+        const placeName = display_name.split(',')[0].trim();
+
+        // Stratégie de détection en cascade (du plus fiable au moins fiable)
+        let detectedRegion = 
+          // 1. Champ "state" de Nominatim → table exhaustive dans locationMapping.js
+          getRegionFromNominatimState(address?.state) ||
+          // 2. Champ "state_district" (parfois utilisé à la place de state)
+          getRegionFromNominatimState(address?.state_district) ||
+          // 3. Fallback : mapping par nom de ville sur le display_name complet
+          getRegionFromLocation(display_name) ||
+          // 4. Dernier recours : mapping sur le nom du lieu uniquement
+          getRegionFromLocation(placeName);
         
         setFormData(prev => ({ 
           ...prev, 
           latitude, 
           longitude, 
           nom_lieu: placeName,
-          region: detectedRegion || prev.region
+          ...(detectedRegion && { region: detectedRegion })
         }));
+
+        if (!detectedRegion) {
+          console.warn("Région non détectée pour :", display_name, "| address:", address);
+        }
       } else {
-        alert("Lieu non trouvé. Essayez d'être plus précis (ex: Okola, Centre)");
+        alert("Lieu non trouvé au Cameroun. Essayez d'être plus précis (ex: Douala, Littoral)");
       }
     } catch (err) {
       console.error("Search failed", err);
@@ -343,9 +360,15 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.region ? 'text-red-600 font-black' : 'text-slate-400'} uppercase tracking-widest`}>
+                  <label className={`font-label-caps text-label-caps ${errors.region ? 'text-red-600 font-black' : 'text-slate-400'} uppercase tracking-widest flex items-center gap-2`}>
                     {errors.region && <span className="material-symbols-outlined text-xs mr-1">error</span>}
                     Région *
+                    {formData.region && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black normal-case tracking-normal">
+                        <span className="material-symbols-outlined text-[10px]">my_location</span>
+                        Auto-détectée
+                      </span>
+                    )}
                   </label>
                   <select name="region" value={formData.region} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.region ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} font-body-md bg-white transition-all`}>
                     <option value="">Sélectionner Région</option>

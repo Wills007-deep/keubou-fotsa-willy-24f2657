@@ -1,215 +1,326 @@
-// Mapping of Cameroon cities, towns, and areas to their regions
+/**
+ * Mapping géographique précis et sans ambiguïté des 10 régions du Cameroun.
+ * Source : Découpage administratif officiel du Cameroun.
+ *
+ * Règle : chaque ville/lieu n'appartient qu'à UNE SEULE région.
+ * Les capitales régionales et chef-lieux de départements ont été vérifiés.
+ */
+
+// ──────────────────────────────────────────────
+// NOMS NOMINATIM → NOM APP (source : address.state de l'API Nominatim)
+// ──────────────────────────────────────────────
+export const NOMINATIM_STATE_TO_REGION = {
+  // Français
+  'région du centre':      'Centre',
+  'region du centre':      'Centre',
+  'région du littoral':    'Littoral',
+  'region du littoral':    'Littoral',
+  "région de l'ouest":    'Ouest',
+  "region de l'ouest":    'Ouest',
+  'région du nord':        'Nord',
+  'region du nord':        'Nord',
+  'région du sud':         'Sud',
+  'region du sud':         'Sud',
+  "région de l'est":      'Est',
+  "region de l'est":      'Est',
+  "région de l'adamaoua": 'Adamaoua',
+  "region de l'adamaoua": 'Adamaoua',
+  "région de l'extrême-nord": 'Extrême-Nord',
+  "region de l'extreme-nord": 'Extrême-Nord',
+  "région de l'extrême nord": 'Extrême-Nord',
+  "region de l'extreme nord": 'Extrême-Nord',
+  'région du nord-ouest':  'Nord-Ouest',
+  'region du nord-ouest':  'Nord-Ouest',
+  'région du sud-ouest':   'Sud-Ouest',
+  'region du sud-ouest':   'Sud-Ouest',
+
+  // Anglais (OpenStreetMap utilise parfois la version anglaise)
+  'centre region':     'Centre',
+  'littoral region':   'Littoral',
+  'west region':       'Ouest',
+  'north region':      'Nord',
+  'south region':      'Sud',
+  'east region':       'Est',
+  'adamawa region':    'Adamaoua',
+  'far north region':  'Extrême-Nord',
+  'northwest region':  'Nord-Ouest',
+  'southwest region':  'Sud-Ouest',
+
+  // Formes courtes
+  'centre':     'Centre',
+  'littoral':   'Littoral',
+  'ouest':      'Ouest',
+  'west':       'Ouest',
+  'nord':       'Nord',
+  'north':      'Nord',
+  'sud':        'Sud',
+  'south':      'Sud',
+  'est':        'Est',
+  'east':       'Est',
+  'adamaoua':   'Adamaoua',
+  'adamawa':    'Adamaoua',
+  'extrême-nord':  'Extrême-Nord',
+  'extreme-nord':  'Extrême-Nord',
+  'far north':     'Extrême-Nord',
+  'nord-ouest':    'Nord-Ouest',
+  'northwest':     'Nord-Ouest',
+  'nord ouest':    'Nord-Ouest',
+  'sud-ouest':     'Sud-Ouest',
+  'southwest':     'Sud-Ouest',
+  'sud ouest':     'Sud-Ouest',
+};
+
+// ──────────────────────────────────────────────
+// VILLES & LOCALITÉS → RÉGION (fallback si Nominatim ne donne pas state)
+// Chaque entrée est vérifiée géographiquement. Une ville = une région.
+// ──────────────────────────────────────────────
 export const LOCATION_TO_REGION = {
-  // Centre Region
+
+  // ── CENTRE ──────────────────────────────────
   'yaoundé': 'Centre',
   'yaounde': 'Centre',
-  'yaoundé 1': 'Centre',
-  'yaoundé 2': 'Centre',
-  'yaoundé 3': 'Centre',
-  'yaoundé 4': 'Centre',
-  'yaoundé 5': 'Centre',
-  'yaoundé 6': 'Centre',
-  'yaoundé 7': 'Centre',
-  'efoulan': 'Centre',
-  'soa': 'Centre',
-  'mezam': 'Centre',
   'mbalmayo': 'Centre',
-  'evodoula': 'Centre',
-  'awae': 'Centre',
-  'akonolinga': 'Centre',
   'obala': 'Centre',
   'okola': 'Centre',
+  'soa': 'Centre',
+  'akonolinga': 'Centre',
+  'bafia': 'Centre',
+  'eseka': 'Centre',
+  'ésékoa': 'Centre',
+  'evodoula': 'Centre',
   'monatélé': 'Centre',
   'monatele': 'Centre',
-  'mbalmayo': 'Centre',
-  'nan-anga eboko': 'Centre',
+  'nanga eboko': 'Centre',
+  'nkolafamba': 'Centre',
   'esse': 'Centre',
+  'awae': 'Centre',
+  'lobo': 'Centre',
+  'ayos': 'Centre',
+  'ntui': 'Centre',
+  'mbam': 'Centre',
 
-  // Littoral Region
+  // ── LITTORAL ────────────────────────────────
   'douala': 'Littoral',
-  'douala 1': 'Littoral',
-  'douala 2': 'Littoral',
-  'douala 3': 'Littoral',
-  'douala 4': 'Littoral',
-  'douala 5': 'Littoral',
-  'douala 6': 'Littoral',
-  'douala 7': 'Littoral',
-  'buea': 'Littoral',
-  'limbe': 'Littoral',
-  'tiko': 'Littoral',
-  'kumba': 'Littoral',
   'edéa': 'Littoral',
   'edea': 'Littoral',
   'nkongsamba': 'Littoral',
-  'manyu': 'Littoral',
   'njombé': 'Littoral',
   'njombe': 'Littoral',
+  'loum': 'Littoral',
+  'melong': 'Littoral',
+  'mbanga': 'Littoral',
+  'dizangué': 'Littoral',
+  'dizangue': 'Littoral',
+  'penja': 'Littoral',
+  'manjo': 'Littoral',
+  'yabasssi': 'Littoral',
+  'yabassi': 'Littoral',
+  'ndom': 'Littoral',
+  'wouri': 'Littoral',
+  'moungo': 'Littoral',
+  'nkam': 'Littoral',
 
-  // West Region
+  // ── OUEST ───────────────────────────────────
   'bafoussam': 'Ouest',
-  'dschang': 'Ouest',
   'dschang': 'Ouest',
   'mbouda': 'Ouest',
   'foumban': 'Ouest',
   'foumbot': 'Ouest',
   'bangangté': 'Ouest',
   'bangangte': 'Ouest',
-  'baleng': 'Ouest',
-  'batié': 'Ouest',
-  'batie': 'Ouest',
-  'kaberry': 'Ouest',
+  'baham': 'Ouest',
+  'bafang': 'Ouest',
   'koutaba': 'Ouest',
   'bandenkop': 'Ouest',
-  'mangoum': 'Ouest',
-  'menoua': 'Ouest',
+  'tonga': 'Ouest',
+  'penka-michel': 'Ouest',
+  'penka michel': 'Ouest',
+  'batcham': 'Ouest',
+  'galim': 'Ouest',
   'noun': 'Ouest',
-  'koung-khi': 'Ouest',
-  'baham': 'Ouest',
+  'menoua': 'Ouest',
+  'bamboutos': 'Ouest',
+  'haut-nkam': 'Ouest',
+  'nde': 'Ouest',
+  'mifi': 'Ouest',
 
-  // North Region (Nord)
+  // ── NORD ────────────────────────────────────
+  // Garoua est la capitale du Nord — unique à cette région
   'garoua': 'Nord',
-  'garua': 'Nord',
-  'ngaoundéré': 'Nord',
-  'ngaoundere': 'Nord',
-  'maroua': 'Nord',
-  'marua': 'Nord',
-  'garoua boulai': 'Nord',
-  'meiganga': 'Nord',
-  'banyo': 'Nord',
-  'tibati': 'Nord',
-  'tignère': 'Nord',
-  'tignere': 'Nord',
-  'belel': 'Nord',
+  'guider': 'Nord',
+  'poli': 'Nord',
+  'figuil': 'Nord',
+  'tcholliré': 'Nord',
+  'tcholire': 'Nord',
+  'lagdo': 'Nord',
+  'bibemi': 'Nord',
+  'pitoa': 'Nord',
+  'mayo-louti': 'Nord',
+  'benoué': 'Nord',
+  'benouee': 'Nord',
+  'mayo-rey': 'Nord',
+  'faro': 'Nord',
 
-  // South Region
+  // ── SUD ─────────────────────────────────────
   'ebolowa': 'Sud',
-  'eboulowa': 'Sud',
   'sangmélima': 'Sud',
   'sangmelima': 'Sud',
   'kribi': 'Sud',
-  'kribi': 'Sud',
+  'ambam': 'Sud',
   'djoum': 'Sud',
-  'ayos': 'Sud',
-  'dja et lobo': 'Sud',
+  'mvangué': 'Sud',
+  'mvangue': 'Sud',
+  'lolodorf': 'Sud',
+  'meyomessala': 'Sud',
+  'ma\'an': 'Sud',
+  "ma'an": 'Sud',
+  'mvila': 'Sud',
   'océan': 'Sud',
   'ocean': 'Sud',
+  'dja et lobo': 'Sud',
   'vallée du ntem': 'Sud',
   'vallee du ntem': 'Sud',
 
-  // East Region
+  // ── EST ─────────────────────────────────────
   'bertoua': 'Est',
   'batouri': 'Est',
-  'batouri': 'Est',
-  'abong-mbang': 'Est',
   'abong-mbang': 'Est',
   'abong mbang': 'Est',
+  'lomié': 'Est',
+  'lomie': 'Est',
   'dimako': 'Est',
-  'atok': 'Est',
-  'kette': 'Est',
+  'doumé': 'Est',
+  'doume': 'Est',
+  'yokadouma': 'Est',
+  'moloundou': 'Est',
   'bétaré oya': 'Est',
   'betare oya': 'Est',
-  'nguti': 'Est',
+  'ngoyla': 'Est',
+  'haut-nyong': 'Est',
+  'lom-et-djérem': 'Est',
+  'boumba-et-ngoko': 'Est',
+  'kadey': 'Est',
 
-  // Adamawa Region
-  'adamaoua': 'Adamaoua',
+  // ── ADAMAOUA ────────────────────────────────
+  // Ngaoundéré est la capitale de l'Adamaoua — unique à cette région
   'ngaoundéré': 'Adamaoua',
   'ngaoundere': 'Adamaoua',
-  'garoua': 'Adamaoua',
-  'garua': 'Adamaoua',
   'meiganga': 'Adamaoua',
   'tibati': 'Adamaoua',
   'banyo': 'Adamaoua',
+  'tignère': 'Adamaoua',
+  'tignere': 'Adamaoua',
   'belel': 'Adamaoua',
+  'nganha': 'Adamaoua',
+  'martap': 'Adamaoua',
+  'ngaoundal': 'Adamaoua',
+  'kontcha': 'Adamaoua',
   'mayo-banyo': 'Adamaoua',
-  'mayo-laddé': 'Adamaoua',
-  'mayo-louti': 'Adamaoua',
   'djerem': 'Adamaoua',
+  'vina': 'Adamaoua',
+  'mbéré': 'Adamaoua',
+  'mbere': 'Adamaoua',
+  'faro-et-deo': 'Adamaoua',
 
-  // Far North Region
-  'extrême-nord': 'Extrême-Nord',
-  'extreme-nord': 'Extrême-Nord',
-  'extrême nord': 'Extrême-Nord',
+  // ── EXTRÊME-NORD ────────────────────────────
+  // Maroua est la capitale — unique à cette région
   'maroua': 'Extrême-Nord',
   'kousseri': 'Extrême-Nord',
   'kousséri': 'Extrême-Nord',
-  'guider': 'Extrême-Nord',
-  'garoua': 'Extrême-Nord',
-  'garua': 'Extrême-Nord',
+  'mora': 'Extrême-Nord',
+  'mokolo': 'Extrême-Nord',
   'kaélé': 'Extrême-Nord',
   'kaele': 'Extrême-Nord',
-  'mayo-tsanaga': 'Extrême-Nord',
-  'mayo-danay': 'Extrême-Nord',
-  'mayo-sava': 'Extrême-Nord',
+  'yagoua': 'Extrême-Nord',
+  'waza': 'Extrême-Nord',
+  'meri': 'Extrême-Nord',
+  'bogo': 'Extrême-Nord',
+  'mindif': 'Extrême-Nord',
   'logone-et-chari': 'Extrême-Nord',
   'logone et chari': 'Extrême-Nord',
-  'mayo-louti': 'Extrême-Nord',
+  'mayo-danay': 'Extrême-Nord',
+  'mayo-kani': 'Extrême-Nord',
+  'mayo-sava': 'Extrême-Nord',
+  'mayo-tsanaga': 'Extrême-Nord',
+  'diamaré': 'Extrême-Nord',
+  'diamare': 'Extrême-Nord',
 
-  // North-West Region
-  'nord-ouest': 'Nord-Ouest',
-  'nord ouest': 'Nord-Ouest',
+  // ── NORD-OUEST ──────────────────────────────
+  // Bamenda est la capitale — unique à cette région
   'bamenda': 'Nord-Ouest',
-  'bali': 'Nord-Ouest',
-  'ndop': 'Nord-Ouest',
-  'nkambe': 'Nord-Ouest',
-  'kumbe': 'Nord-Ouest',
-  'bamenda': 'Nord-Ouest',
-  'kumba': 'Nord-Ouest',
-  'kumba': 'Nord-Ouest',
-  'buea': 'Nord-Ouest',
-  'tiko': 'Nord-Ouest',
-  'limbe': 'Nord-Ouest',
   'kumbo': 'Nord-Ouest',
+  'nkambe': 'Nord-Ouest',
   'wum': 'Nord-Ouest',
-  'menchum': 'Nord-Ouest',
-  'bui': 'Nord-Ouest',
-  'manyu': 'Nord-Ouest',
-  'mezam': 'Nord-Ouest',
-  'boyo': 'Nord-Ouest',
   'bafut': 'Nord-Ouest',
+  'ndop': 'Nord-Ouest',
+  'fundong': 'Nord-Ouest',
+  'nwa': 'Nord-Ouest',
+  'ako': 'Nord-Ouest',
+  'santa': 'Nord-Ouest',
+  'jakiri': 'Nord-Ouest',
   'nkwen': 'Nord-Ouest',
-  'nso': 'Nord-Ouest',
-  'fungom': 'Nord-Ouest',
+  'bui': 'Nord-Ouest',
+  'donga-mantung': 'Nord-Ouest',
+  'menchum': 'Nord-Ouest',
+  'mezam': 'Nord-Ouest',
+  'momo': 'Nord-Ouest',
+  'boyo': 'Nord-Ouest',
+  'ngokentunjia': 'Nord-Ouest',
 
-  // South-West Region
-  'sud-ouest': 'Sud-Ouest',
-  'sud ouest': 'Sud-Ouest',
+  // ── SUD-OUEST ───────────────────────────────
+  // Buea est la capitale — unique à cette région
   'buea': 'Sud-Ouest',
   'limbe': 'Sud-Ouest',
   'tiko': 'Sud-Ouest',
   'kumba': 'Sud-Ouest',
   'muyuka': 'Sud-Ouest',
-  'muea': 'Sud-Ouest',
-  'idenau': 'Sud-Ouest',
-  'jufuari': 'Sud-Ouest',
-  'fako': 'Sud-Ouest',
+  'mundemba': 'Sud-Ouest',
   'bangem': 'Sud-Ouest',
-  'balondo': 'Sud-Ouest',
+  'mamfe': 'Sud-Ouest',
+  'eyumojock': 'Sud-Ouest',
+  'idenau': 'Sud-Ouest',
+  'muea': 'Sud-Ouest',
+  'fako': 'Sud-Ouest',
   'meme': 'Sud-Ouest',
+  'kupe-muanenguba': 'Sud-Ouest',
+  'lebialem': 'Sud-Ouest',
+  'manyu': 'Sud-Ouest',
+  'ndian': 'Sud-Ouest',
 };
 
 /**
- * Get region from location name
- * @param {string} locationName - The name of the location
- * @returns {string|null} - The region name or null if not found
+ * Détecte la région du Cameroun depuis le champ "state" retourné par Nominatim.
+ * C'est la méthode principale et la plus fiable.
+ *
+ * @param {string} stateStr - address.state de la réponse Nominatim
+ * @returns {string|null} - Nom de région (ex: 'Centre') ou null
+ */
+export function getRegionFromNominatimState(stateStr) {
+  if (!stateStr) return null;
+  const normalized = stateStr.toLowerCase().trim();
+  return NOMINATIM_STATE_TO_REGION[normalized] || null;
+}
+
+/**
+ * Détecte la région depuis un nom de lieu (fallback si Nominatim ne retourne pas state).
+ * Recherche exacte d'abord, puis recherche par sous-chaîne.
+ *
+ * @param {string} locationName - display_name ou nom de lieu
+ * @returns {string|null}
  */
 export function getRegionFromLocation(locationName) {
   if (!locationName) return null;
-  
-  // Normalize the location name
-  const normalized = locationName
-    .toLowerCase()
-    .trim()
-    .split(',')[0] // Take first part if it's a full address
-    .trim();
 
-  // Try exact match first
-  if (LOCATION_TO_REGION[normalized]) {
-    return LOCATION_TO_REGION[normalized];
+  const parts = locationName.toLowerCase().split(',').map(p => p.trim());
+
+  for (const part of parts) {
+    if (LOCATION_TO_REGION[part]) return LOCATION_TO_REGION[part];
   }
 
-  // Try substring matching for variations
-  for (const [location, region] of Object.entries(LOCATION_TO_REGION)) {
-    if (normalized.includes(location) || location.includes(normalized)) {
+  // Recherche partielle (sous-chaîne) uniquement sur le premier segment
+  const firstPart = parts[0];
+  for (const [key, region] of Object.entries(LOCATION_TO_REGION)) {
+    if (firstPart.includes(key) || key.includes(firstPart)) {
       return region;
     }
   }
