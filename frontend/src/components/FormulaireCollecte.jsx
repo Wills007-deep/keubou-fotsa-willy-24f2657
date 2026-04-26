@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
-import { getRegionFromLocation, getRegionFromNominatimState } from '../utils/locationMapping';
+import { getRegionFromLocation } from '../utils/locationMapping';
 
-const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://keubou-fotsa-willy-24f2657.onrender.com/api');
+const API_BASE = 'http://localhost:8000/api';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -40,7 +40,6 @@ export default function FormulaireCollecte() {
   const [isEdit, setIsEdit] = useState(!!collecteId);
   
   const [formData, setFormData] = useState({
-    participant_name: '',
     culture_type: '',
     custom_culture: '',
     plantation_name: '',
@@ -89,7 +88,6 @@ export default function FormulaireCollecte() {
       const collecte = response.data;
       const isCustom = !cropOptions.includes(collecte.culture_type);
       setFormData({
-        participant_name: collecte.participant_name || '',
         culture_type: isCustom ? 'Autre' : collecte.culture_type,
         custom_culture: isCustom ? collecte.culture_type : '',
         plantation_name: collecte.plantation_name || '',
@@ -132,49 +130,28 @@ export default function FormulaireCollecte() {
     setSelectedLocation([lat, lng]);
   };
 
-
   const handleSearchLocation = async () => {
     if (!searchQuery) return;
     try {
-      // addressdetails=1 retourne la structure d'adresse complète avec state, county, etc.
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=cm&limit=1&addressdetails=1`
-      );
+      const response = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
       if (response.data && response.data.length > 0) {
-        const result = response.data[0];
-        const { lat, lon, display_name, address } = result;
+        const { lat, lon, display_name } = response.data[0];
         const latitude = parseFloat(lat);
         const longitude = parseFloat(lon);
+        const placeName = display_name.split(',')[0];
+        
+        // Auto-detect region from location
+        const detectedRegion = getRegionFromLocation(placeName) || getRegionFromLocation(display_name);
         
         setMapCenter([latitude, longitude]);
-        setSelectedLocation([latitude, longitude]);
-        
-        const placeName = display_name.split(',')[0].trim();
-
-        // Stratégie de détection en cascade (du plus fiable au moins fiable)
-        let detectedRegion = 
-          // 1. Champ "state" de Nominatim → table exhaustive dans locationMapping.js
-          getRegionFromNominatimState(address?.state) ||
-          // 2. Champ "state_district" (parfois utilisé à la place de state)
-          getRegionFromNominatimState(address?.state_district) ||
-          // 3. Fallback : mapping par nom de ville sur le display_name complet
-          getRegionFromLocation(display_name) ||
-          // 4. Dernier recours : mapping sur le nom du lieu uniquement
-          getRegionFromLocation(placeName);
-        
         setFormData(prev => ({ 
           ...prev, 
           latitude, 
           longitude, 
-          nom_lieu: placeName,
-          ...(detectedRegion && { region: detectedRegion })
+          nom_lieu: prev.nom_lieu || placeName,
+          region: detectedRegion || prev.region // Auto-populate region if detected
         }));
-
-        if (!detectedRegion) {
-          console.warn("Région non détectée pour :", display_name, "| address:", address);
-        }
-      } else {
-        alert("Lieu non trouvé au Cameroun. Essayez d'être plus précis (ex: Douala, Littoral)");
+        setSelectedLocation([latitude, longitude]);
       }
     } catch (err) {
       console.error("Search failed", err);
@@ -184,59 +161,21 @@ export default function FormulaireCollecte() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
-    // Participant Name validation
-    if (!formData.participant_name || formData.participant_name.trim().length < 2) {
-      newErrors.participant_name = "Votre nom est obligatoire pour le suivi collaboratif (min. 2 caractères).";
-    }
-
-    // Culture validation
-    if (!formData.culture_type) {
-      newErrors.culture_type = "La sélection d'une culture est obligatoire.";
-    } else if (formData.culture_type === 'Autre') {
-      const custom = formData.custom_culture.trim();
-      if (!custom) {
-        newErrors.custom_culture = 'Veuillez préciser le nom de la culture.';
-      } else if (custom.length < 3) {
-        newErrors.custom_culture = 'Le nom de la culture doit être explicite (min. 3 caractères).';
-      } else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(custom)) {
-        newErrors.custom_culture = 'Le nom de la culture ne peut contenir que des lettres (pas de chiffres ni de symboles).';
-      }
-    }
-
-    // Mandatory fields
-    if (!formData.region) newErrors.region = "La région est obligatoire pour l'analyse géospatiale.";
-    if (!formData.plantation_name || formData.plantation_name.length < 2) newErrors.plantation_name = 'Le nom de la plantation est requis (min. 2 caractères).';
-    
-    // Numeric validation
-    if (!formData.surface || parseFloat(formData.surface) <= 0) {
-      newErrors.surface = 'La surface doit être un nombre positif supérieur à zéro.';
-    }
-    if (!formData.quantite_engrais || parseFloat(formData.quantite_engrais) < 0) {
-      newErrors.quantite_engrais = "La quantité d'engrais ne peut pas être négative.";
-    }
-    if (!formData.rendement_final || parseFloat(formData.rendement_final) <= 0) {
-      newErrors.rendement_final = 'Le rendement final doit être renseigné et supérieur à zéro.';
-    }
+    if (!formData.culture_type) newErrors.culture_type = 'Sélectionner une culture';
+    if (formData.culture_type === 'Autre' && !formData.custom_culture) newErrors.custom_culture = 'Préciser la culture';
+    if (!formData.surface || parseFloat(formData.surface) <= 0) newErrors.surface = 'Surface requise';
+    if (!formData.quantite_engrais || parseFloat(formData.quantite_engrais) < 0) newErrors.quantite_engrais = 'Quantité requise';
+    if (!formData.rendement_final || parseFloat(formData.rendement_final) < 0) newErrors.rendement_final = 'Rendement requis';
     
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      console.warn("Validation errors found:", newErrors);
-      // Scroll to the first error
-      const firstError = Object.keys(newErrors)[0];
-      const element = document.getElementsByName(firstError)[0];
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        element.focus(); // Focus the field
-      }
-      return false;
-    }
-    return true;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -258,16 +197,12 @@ export default function FormulaireCollecte() {
 
       if (isEdit) {
         await axios.put(`${API_BASE}/collectes/${collecteId}`, payload);
-        alert("Collecte modifiée avec succès !");
       } else {
         await axios.post(`${API_BASE}/collectes/`, payload);
-        alert("Nouvelle collecte enregistrée avec succès !");
       }
       navigate('/collectes');
     } catch (error) {
-      console.error('Erreur complète:', error);
-      const msg = error.response?.data?.detail || "Erreur de connexion au serveur.";
-      alert("Erreur lors de la sauvegarde : " + msg);
+      console.error('Erreur:', error);
       setErrors({ submit: 'Erreur lors de la sauvegarde. Vérifiez les champs.' });
     } finally {
       setLoading(false);
@@ -279,74 +214,39 @@ export default function FormulaireCollecte() {
       <section className="p-4 md:p-8 max-w-6xl mx-auto">
         <div className="mb-8">
           <h2 className="font-h2 text-h2 text-emerald-900 mb-2">{isEdit ? 'Modifier la Collecte' : 'Nouvelle Collecte AgroAnalytics'}</h2>
-          <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour évaluer le rapport engrais / rendement.</p>
+          <p className="font-body-md text-slate-500 max-w-2xl">Capturez les données de précision pour améliorer vos futurs rendements.</p>
         </div>
 
-        {/* Banner Instruction Mobile/Global */}
-        <div className="mb-8 bg-emerald-50 dark:bg-emerald-900/30 border-l-4 border-primary p-4 rounded-r-xl flex items-start gap-4">
-           <div className="w-10 h-10 rounded-full bg-white dark:bg-emerald-800 flex items-center justify-center text-primary dark:text-emerald-100 shadow-sm shrink-0">
-              <span className="material-symbols-outlined">explore</span>
-           </div>
-           <div>
-              <p className="font-bold text-emerald-900 dark:text-emerald-50 text-sm">Conseil : Commencez par la carte</p>
-              <p className="text-xs text-emerald-800 dark:text-emerald-200 opacity-90 leading-relaxed">
-                 Pour une précision maximale, localisez d'abord votre plantation sur la carte (en haut sur mobile, à droite sur PC). Utilisez la barre de recherche ou cliquez directement sur le lieu.
-              </p>
-           </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col-reverse lg:grid lg:grid-cols-12 gap-gutter">
+        <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-gutter">
           <div className="col-span-12 lg:col-span-8 space-y-gutter">
             {/* Step 1 */}
             <div className="bg-white rounded-[16px] p-8 shadow-sm border border-emerald-900/5">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">1</div>
-                <h3 className="font-h3 text-h3 text-emerald-900">Identification & Plantation</h3>
+                <h3 className="font-h3 text-h3 text-emerald-900">Culture & Plantation</h3>
               </div>
-              
-              <div className="space-y-sm mb-6">
-                <label className={`font-label-caps text-label-caps ${errors.participant_name ? 'text-red-600 font-black' : 'text-slate-400'}`}>
-                  {errors.participant_name && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                  NOM DU PARTICIPANT (VOUS) *
-                </label>
-                <input name="participant_name" value={formData.participant_name} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.participant_name ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Votre nom complet" />
-                {errors.participant_name && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.participant_name}</p>}
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.plantation_name ? 'text-red-600 font-black' : 'text-slate-400'}`}>
-                    {errors.plantation_name && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                    NOM PLANTATION *
-                  </label>
-                  <input name="plantation_name" value={formData.plantation_name} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.plantation_name ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Ex. Ferme de Njombé" />
-                  {errors.plantation_name && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.plantation_name}</p>}
+                  <label className="font-label-caps text-label-caps text-slate-400">NOM PLANTATION</label>
+                  <input name="plantation_name" value={formData.plantation_name} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Ferme de Njombé" />
                 </div>
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-slate-400">OPÉRATEUR DE TERRAIN</label>
-                  <input name="operator" value={formData.operator} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Agronome responsable" />
+                  <label className="font-label-caps text-label-caps text-slate-400">OPÉRATEUR</label>
+                  <input name="operator" value={formData.operator} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Nom de l'agronome" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.culture_type ? 'text-red-600 font-black' : 'text-slate-400'}`}>
-                    {errors.culture_type && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                    TYPE DE CULTURE *
-                  </label>
-                  <select name="culture_type" value={formData.culture_type} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.culture_type ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md bg-white transition-all`}>
+                  <label className="font-label-caps text-label-caps text-slate-400">TYPE DE CULTURE</label>
+                  <select name="culture_type" value={formData.culture_type} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md bg-white">
                     <option value="">Choisir...</option>
                     {cropOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  {errors.culture_type && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.culture_type}</p>}
                 </div>
                 {formData.culture_type === 'Autre' && (
                   <div className="space-y-sm">
-                    <label className={`font-label-caps text-label-caps ${errors.custom_culture ? 'text-red-600 font-black' : 'text-slate-400'}`}>
-                      {errors.custom_culture && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                      PRÉCISER CULTURE *
-                    </label>
-                    <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.custom_culture ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md transition-all`} placeholder="Ex. Poivre de Penja" />
-                    {errors.custom_culture && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.custom_culture}</p>}
+                    <label className="font-label-caps text-label-caps text-slate-400">PRÉCISER CULTURE</label>
+                    <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Poivre de Penja" />
                   </div>
                 )}
               </div>
@@ -360,21 +260,11 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.region ? 'text-red-600 font-black' : 'text-slate-400'} uppercase tracking-widest flex items-center gap-2`}>
-                    {errors.region && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                    Région *
-                    {formData.region && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black normal-case tracking-normal">
-                        <span className="material-symbols-outlined text-[10px]">my_location</span>
-                        Auto-détectée
-                      </span>
-                    )}
-                  </label>
-                  <select name="region" value={formData.region} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border-2 ${errors.region ? 'border-red-500 bg-red-50 focus:ring-red-500' : 'border-slate-200'} font-body-md bg-white transition-all`}>
+                  <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Région</label>
+                  <select name="region" value={formData.region} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md bg-white">
                     <option value="">Sélectionner Région</option>
                     {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
-                  {errors.region && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.region}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Type de Sol (Optionnel)</label>
@@ -386,20 +276,7 @@ export default function FormulaireCollecte() {
               </div>
               <div className="space-y-sm">
                 <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE</label>
-                <input 
-                  name="nom_lieu" 
-                  value={formData.nom_lieu} 
-                  onChange={handleInputChange} 
-                  onBlur={() => {
-                    if (formData.nom_lieu && !selectedLocation) {
-                      setSearchQuery(formData.nom_lieu);
-                      handleSearchLocation();
-                    }
-                  }}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" 
-                  placeholder="Ex: Okola, Cameroun" 
-                />
-                <p className="text-[10px] text-slate-400 italic">Utilisez la barre de recherche à droite ou cliquez sur "OK" pour placer le point.</p>
+                <input name="nom_lieu" value={formData.nom_lieu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" placeholder="Ex: Bloc Sud 4-B" />
               </div>
             </div>
 
@@ -411,20 +288,12 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-8">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-xs ${errors.surface ? 'text-red-600 font-black' : 'text-slate-400'}`}>
-                    {errors.surface && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                    SURFACE (HA) *
-                  </label>
-                  <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className={`w-full px-4 py-3 rounded-xl border-2 ${errors.surface ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md transition-all`} />
-                  {errors.surface && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.surface}</p>}
+                  <label className="font-label-caps text-xs text-slate-400">SURFACE (HA)</label>
+                  <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" />
                 </div>
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-xs ${errors.quantite_engrais ? 'text-red-600 font-black' : 'text-slate-400'}`}>
-                    {errors.quantite_engrais && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                    ENGRAIS (KG) *
-                  </label>
-                  <input name="quantite_engrais" value={formData.quantite_engrais} onChange={handleInputChange} type="number" className={`w-full px-4 py-3 rounded-xl border-2 ${errors.quantite_engrais ? 'border-red-500 bg-red-50' : 'border-slate-200'} font-body-md transition-all`} />
-                  {errors.quantite_engrais && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.quantite_engrais}</p>}
+                  <label className="font-label-caps text-xs text-slate-400">ENGRAIS (KG)</label>
+                  <input name="quantite_engrais" value={formData.quantite_engrais} onChange={handleInputChange} type="number" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" />
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-xs text-slate-400">EAU (m³) - OPTIONNEL</label>
@@ -433,12 +302,8 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
-                  <label className={`font-label-caps text-label-caps ${errors.rendement_final ? 'text-red-600 font-black' : 'text-primary font-bold'}`}>
-                    {errors.rendement_final && <span className="material-symbols-outlined text-xs mr-1">error</span>}
-                    RENDEMENT FINAL (TONS) *
-                  </label>
-                  <input name="rendement_final" value={formData.rendement_final} onChange={handleInputChange} type="number" className={`w-full px-4 py-4 rounded-xl border-2 ${errors.rendement_final ? 'border-red-500 bg-red-50' : 'border-primary/20 bg-emerald-50/30'} text-xl font-bold text-primary transition-all`} />
-                  {errors.rendement_final && <p className="text-[11px] text-red-600 font-bold mt-1 animate-pulse">{errors.rendement_final}</p>}
+                  <label className="font-label-caps text-label-caps text-primary font-bold">RENDEMENT FINAL (TONS)</label>
+                  <input name="rendement_final" value={formData.rendement_final} onChange={handleInputChange} type="number" className="w-full px-4 py-4 rounded-xl border-2 border-primary/20 bg-emerald-50/30 text-xl font-bold text-primary" />
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400">DATE RÉCOLTE</label>
@@ -488,7 +353,7 @@ export default function FormulaireCollecte() {
               </div>
               <div className="h-64 relative z-0">
                 <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
                   <MapClick onLocationSelect={handleLocationSelect} />
                   <MapRecenter center={mapCenter} />
                   {selectedLocation && <Marker position={selectedLocation} />}
