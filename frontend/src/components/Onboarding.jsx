@@ -5,19 +5,19 @@ const slides = [
   {
     title: "Analyse Scientifique",
     description: "Bienvenue dans votre outil de TP. Notre mission est d'évaluer scientifiquement le rapport entre la quantité d'engrais utilisée et le rendement final d'une parcelle.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCZxLLCE0-cqItewveWId4LB-_sAXr40m4Pg73XwhATo22mnCxAo4lrCIkfRq2NrJcr6Sao6MilQ3jhaDUGKMWhzotoDeTaAnsAfBiuxX5vm9QgY31gExmVoCvDl6rtQ569owmyY_9mQgGZYkj_ii83htkvKPdYRqC6-GOWN23qibzvPM54Eym2nhuLKtPDJXd9SLPabfvm5o7koUz9SIZwxbmaCOI0KqjE0Bg7Dvrdbd5njbcqph1dsBQK26-imB-JjVI-fWhGzEcP",
+    image: "/onboarding_analyse.png",
     color: "#2D6A4F"
   },
   {
     title: "Collecte Collaborative",
     description: "Enregistrez vos données de terrain et accédez instantanément aux relevés de vos collègues. La collaboration est la clé d'une analyse descriptive pertinente.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCZxLLCE0-cqItewveWId4LB-_sAXr40m4Pg73XwhATo22mnCxAo4lrCIkfRq2NrJcr6Sao6MilQ3jhaDUGKMWhzotoDeTaAnsAfBiuxX5vm9QgY31gExmVoCvDl6rtQ569owmyY_9mQgGZYkj_ii83htkvKPdYRqC6-GOWN23qibzvPM54Eym2nhuLKtPDJXd9SLPabfvm5o7koUz9SIZwxbmaCOI0KqjE0Bg7Dvrdbd5njbcqph1dsBQK26-imB-JjVI-fWhGzEcP",
+    image: "/onboarding_collecte.png",
     color: "#1B4332"
   },
   {
     title: "Décision par la Donnée",
     description: "Visualisez les corrélations et optimisez les intrants. Transformez vos collectes en indicateurs de performance pour une agriculture de précision moderne.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCZxLLCE0-cqItewveWId4LB-_sAXr40m4Pg73XwhATo22mnCxAo4lrCIkfRq2NrJcr6Sao6MilQ3jhaDUGKMWhzotoDeTaAnsAfBiuxX5vm9QgY31gExmVoCvDl6rtQ569owmyY_9mQgGZYkj_ii83htkvKPdYRqC6-GOWN23qibzvPM54Eym2nhuLKtPDJXd9SLPabfvm5o7koUz9SIZwxbmaCOI0KqjE0Bg7Dvrdbd5njbcqph1dsBQK26-imB-JjVI-fWhGzEcP",
+    image: "/onboarding_decision.png",
     color: "#081c15"
   }
 ];
