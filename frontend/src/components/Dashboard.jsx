@@ -6,7 +6,7 @@ import L from 'leaflet';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://keubou-fotsa-willy-24f2657.onrender.com/api');
+const API_BASE = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
 const COLORS = ['#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#064e3b'];
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -374,20 +374,28 @@ export default function Dashboard() {
           </div>
 
           <div className="col-span-12 lg:col-span-4 bg-white dark:bg-slate-900 rounded-[16px] p-6 shadow-sm border border-emerald-900/5 dark:border-emerald-100/10">
-            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-6 uppercase text-xs tracking-widest">Répartition des Cultures</h3>
-            <div className="h-[350px] relative flex items-center justify-center">
+            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4 uppercase text-xs tracking-widest">Répartition des Cultures</h3>
+            <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={getCultureDistribution()} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
+                  <Pie data={getCultureDistribution()} cx="50%" cy="50%" outerRadius={100} dataKey="value" stroke="#fff" strokeWidth={2} label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {getCultureDistribution().map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value, name) => [`${value} parcelle(s)`, name]} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="absolute text-center">
-                 <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{totalCollectes}</p>
-                 <p className="text-[10px] text-slate-400">TOTAL</p>
-              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 justify-center">
+              {getCultureDistribution().map((entry, index) => (
+                <div key={entry.name} className="flex items-center gap-1.5 text-[11px]">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{backgroundColor: COLORS[index % COLORS.length]}}></span>
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">{entry.name} ({entry.value})</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 text-center">
+              <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{totalCollectes}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest">Total parcelles</p>
             </div>
           </div>
 
