@@ -169,11 +169,12 @@ export default function FormulaireCollecte() {
 
   const validateForm = () => {
     const newErrors = {};
+    if (!formData.region) newErrors.region = 'La région est obligatoire pour l\'analyse';
     if (!formData.culture_type) newErrors.culture_type = 'Sélectionner une culture';
     if (formData.culture_type === 'Autre' && !formData.custom_culture) newErrors.custom_culture = 'Préciser la culture';
-    if (!formData.surface || parseFloat(formData.surface) <= 0) newErrors.surface = 'Surface requise';
-    if (!formData.quantite_engrais || parseFloat(formData.quantite_engrais) < 0) newErrors.quantite_engrais = 'Quantité requise';
-    if (!formData.rendement_final || parseFloat(formData.rendement_final) < 0) newErrors.rendement_final = 'Rendement requis';
+    if (!formData.surface || parseFloat(formData.surface) <= 0) newErrors.surface = 'Surface requise (> 0)';
+    if (!formData.quantite_engrais || parseFloat(formData.quantite_engrais) < 0) newErrors.quantite_engrais = 'Quantité requise (>= 0)';
+    if (!formData.rendement_final || parseFloat(formData.rendement_final) < 0) newErrors.rendement_final = 'Rendement requis (>= 0)';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -181,7 +182,16 @@ export default function FormulaireCollecte() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Scroll to the first error message
+      setTimeout(() => {
+        const firstError = document.querySelector('.text-red-500');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -280,11 +290,12 @@ export default function FormulaireCollecte() {
               <div className="p-6 border-t border-slate-100 bg-white">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
                   <div className="space-y-sm">
-                    <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Région Détectée / Sélectionnée</label>
-                    <select name="region" value={formData.region} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md bg-white">
+                    <label className={`font-label-caps text-label-caps ${errors.region ? 'text-red-500' : 'text-slate-400'} uppercase tracking-widest`}>Région Détectée / Sélectionnée *</label>
+                    <select name="region" value={formData.region} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.region ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} font-body-md bg-white`}>
                       <option value="">Sélectionner Région</option>
                       {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
+                    {errors.region && <p className="text-red-500 text-[10px] font-bold italic">{errors.region}</p>}
                   </div>
                   <div className="space-y-sm">
                     <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Type de Sol (Optionnel)</label>
@@ -319,16 +330,18 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-slate-400">TYPE DE CULTURE</label>
-                  <select name="culture_type" value={formData.culture_type} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md bg-white">
+                  <label className={`font-label-caps text-label-caps ${errors.culture_type ? 'text-red-500' : 'text-slate-400'}`}>TYPE DE CULTURE *</label>
+                  <select name="culture_type" value={formData.culture_type} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.culture_type ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md bg-white`}>
                     <option value="">Choisir...</option>
                     {cropOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
+                  {errors.culture_type && <p className="text-red-500 text-[10px] font-bold italic">{errors.culture_type}</p>}
                 </div>
                 {formData.culture_type === 'Autre' && (
                   <div className="space-y-sm">
-                    <label className="font-label-caps text-label-caps text-slate-400">PRÉCISER CULTURE</label>
-                    <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Poivre de Penja" />
+                    <label className={`font-label-caps text-label-caps ${errors.custom_culture ? 'text-red-500' : 'text-slate-400'}`}>PRÉCISER CULTURE *</label>
+                    <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border ${errors.custom_culture ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} focus:border-primary focus:ring-1 focus:ring-primary font-body-md`} placeholder="Ex. Poivre de Penja" />
+                    {errors.custom_culture && <p className="text-red-500 text-[10px] font-bold italic">{errors.custom_culture}</p>}
                   </div>
                 )}
               </div>
@@ -342,12 +355,14 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-8">
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-xs text-slate-400">SURFACE (HA)</label>
-                  <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" />
+                  <label className={`font-label-caps text-xs ${errors.surface ? 'text-red-500' : 'text-slate-400'}`}>SURFACE (HA) *</label>
+                  <input name="surface" value={formData.surface} onChange={handleInputChange} type="number" step="0.1" className={`w-full px-4 py-3 rounded-xl border ${errors.surface ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} font-body-md`} />
+                  {errors.surface && <p className="text-red-500 text-[10px] font-bold italic">{errors.surface}</p>}
                 </div>
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-xs text-slate-400">ENGRAIS (KG)</label>
-                  <input name="quantite_engrais" value={formData.quantite_engrais} onChange={handleInputChange} type="number" className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" />
+                  <label className={`font-label-caps text-xs ${errors.quantite_engrais ? 'text-red-500' : 'text-slate-400'}`}>ENGRAIS (KG) *</label>
+                  <input name="quantite_engrais" value={formData.quantite_engrais} onChange={handleInputChange} type="number" className={`w-full px-4 py-3 rounded-xl border ${errors.quantite_engrais ? 'border-red-500 bg-red-50/30' : 'border-slate-200'} font-body-md`} />
+                  {errors.quantite_engrais && <p className="text-red-500 text-[10px] font-bold italic">{errors.quantite_engrais}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-xs text-slate-400">EAU (m³) - OPTIONNEL</label>
@@ -356,8 +371,9 @@ export default function FormulaireCollecte() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-primary font-bold">RENDEMENT FINAL (TONS)</label>
-                  <input name="rendement_final" value={formData.rendement_final} onChange={handleInputChange} type="number" className="w-full px-4 py-4 rounded-xl border-2 border-primary/20 bg-emerald-50/30 text-xl font-bold text-primary" />
+                  <label className={`font-label-caps text-label-caps ${errors.rendement_final ? 'text-red-500' : 'text-primary'} font-bold`}>RENDEMENT FINAL (TONS) *</label>
+                  <input name="rendement_final" value={formData.rendement_final} onChange={handleInputChange} type="number" className={`w-full px-4 py-4 rounded-xl border-2 ${errors.rendement_final ? 'border-red-500 bg-red-50/30' : 'border-primary/20 bg-emerald-50/30'} text-xl font-bold text-primary`} />
+                  {errors.rendement_final && <p className="text-red-500 text-[10px] font-bold italic">{errors.rendement_final}</p>}
                 </div>
                 <div className="space-y-sm">
                   <label className="font-label-caps text-label-caps text-slate-400">DATE RÉCOLTE</label>
