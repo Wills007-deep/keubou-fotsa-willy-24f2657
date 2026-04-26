@@ -17,16 +17,35 @@ export default function Accueil() {
 
   const fetchData = async () => {
     try {
+      const cachedStats = sessionStorage.getItem('agro_stats');
+      const cachedCollectes = sessionStorage.getItem('agro_collectes');
+      if (cachedStats && cachedCollectes) {
+        setStats(JSON.parse(cachedStats));
+        setCollectes(JSON.parse(cachedCollectes));
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       const [statsRes, collectesRes] = await Promise.all([
         axios.get(`${API_BASE}/stats/`),
-        axios.get(`${API_BASE}/collectes/?skip=0&limit=100`)
+        axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`)
       ]);
-      setStats(statsRes.data || {});
-      setCollectes(collectesRes.data || []);
+      
+      const newStats = statsRes.data || {};
+      const newCollectes = collectesRes.data || [];
+      
+      setStats(newStats);
+      setCollectes(newCollectes);
+      
+      sessionStorage.setItem('agro_stats', JSON.stringify(newStats));
+      sessionStorage.setItem('agro_collectes', JSON.stringify(newCollectes));
     } catch (error) {
       console.error('Erreur:', error);
-      setStats({});
-      setCollectes([]);
+      if (!sessionStorage.getItem('agro_stats')) {
+        setStats({});
+        setCollectes([]);
+      }
     } finally {
       setLoading(false);
     }

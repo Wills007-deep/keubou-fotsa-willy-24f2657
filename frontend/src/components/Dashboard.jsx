@@ -32,19 +32,38 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      setLoading(true);
+      // Stale-While-Revalidate (SWR) Caching pour chargement instantané
+      const cachedStats = sessionStorage.getItem('agro_stats');
+      const cachedCollectes = sessionStorage.getItem('agro_collectes');
+      if (cachedStats && cachedCollectes) {
+        setStats(JSON.parse(cachedStats));
+        setCollectes(JSON.parse(cachedCollectes));
+        setLoading(false); // Affichage instantané
+      } else {
+        setLoading(true);
+      }
+
       setError(null);
       const [statsRes, collectesRes] = await Promise.all([
         axios.get(`${API_BASE}/stats/`),
         axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`)
       ]);
-      setStats(statsRes.data || {});
-      setCollectes(collectesRes.data || []);
+      
+      const newStats = statsRes.data || {};
+      const newCollectes = collectesRes.data || [];
+      
+      setStats(newStats);
+      setCollectes(newCollectes);
+      
+      sessionStorage.setItem('agro_stats', JSON.stringify(newStats));
+      sessionStorage.setItem('agro_collectes', JSON.stringify(newCollectes));
     } catch (err) {
       console.error('Erreur API:', err);
-      setError("Impossible de récupérer les analyses. Le serveur est peut-être en train de redémarrer (patientez 30s).");
-      setStats({}); 
-      setCollectes([]);
+      if (!sessionStorage.getItem('agro_stats')) {
+        setError("Impossible de récupérer les analyses. Le serveur est peut-être en train de redémarrer (patientez 30s).");
+        setStats({}); 
+        setCollectes([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -146,6 +165,54 @@ export default function Dashboard() {
   const totalEngrais = collectes.reduce((sum, c) => sum + (c.quantite_engrais || 0), 0).toFixed(0);
   const totalSurface = collectes.reduce((sum, c) => sum + (c.surface || 0), 0).toFixed(2);
 
+  const getAIAnalysis = () => {
+    if (totalCollectes < 3) {
+      return {
+        verdict: "Données Insuffisantes",
+        analysis: `Le volume de données actuel (${totalCollectes} parcelle${totalCollectes > 1 ? 's' : ''}) est insuffisant pour dégager des tendances statistiques fiables. La corrélation calculée n'est donnée qu'à titre indicatif.`,
+        conclusion: "La représentativité de l'échantillon est trop faible pour tirer des conclusions définitives.",
+        adviceTitle: "Collecte Requise",
+        advice: "Poursuivez la collecte de données. Visez au moins 5 parcelles pour permettre au moteur d'intelligence artificielle d'identifier des schémas d'optimisation."
+      };
+    }
+    
+    if (correlationVal > 0.7) {
+      return {
+        verdict: "Excellente Synergie",
+        analysis: `L'analyse révèle une corrélation positive très forte (r = ${correlationVal.toFixed(2)}) entre le volume d'engrais et le rendement, avec un indice de confiance de ${confidenceIndex}%. Les cultures présentent une excellente réceptivité aux intrants.`,
+        conclusion: "Votre stratégie de fertilisation est le moteur principal de votre productivité et génère un retour sur investissement optimal.",
+        adviceTitle: "Optimisation Marginale",
+        advice: "Maintenez le programme actuel. Envisagez des tests de micro-dosage pour identifier le point de saturation exact et optimiser vos coûts."
+      };
+    } else if (correlationVal > 0.3) {
+      return {
+        verdict: "Dépendance Modérée",
+        analysis: `Nous observons une corrélation modérément positive (r = ${correlationVal.toFixed(2)}) entre la fertilisation et le rendement. D'autres variables agronomiques influencent significativement le résultat.`,
+        conclusion: "L'engrais contribue à la production, mais il existe probablement d'autres facteurs limitants sur vos parcelles.",
+        adviceTitle: "Recherche de Facteurs Limitants",
+        advice: "Évaluez les variables externes : qualité de l'irrigation, structure du sol ou stress thermique. Une analyse de sol est recommandée."
+      };
+    } else if (correlationVal >= -0.3) {
+      return {
+        verdict: "Absence de Corrélation",
+        analysis: `L'algorithme ne détecte aucune corrélation linéaire significative (r = ${correlationVal.toFixed(2)}) entre la quantité d'engrais et le rendement. La distribution est statistiquement hétérogène.`,
+        conclusion: "L'augmentation des doses d'engrais ne se traduit pas par un gain de production mesurable pour le moment.",
+        adviceTitle: "Audit Stratégique",
+        advice: "Stoppez l'augmentation des apports. Vérifiez l'adéquation des périodes d'épandage, la qualité des intrants ou la présence de maladies endémiques."
+      };
+    } else {
+      return {
+        verdict: "Alerte de Toxicité",
+        analysis: `Alerte analytique : L'analyse révèle une corrélation négative (r = ${correlationVal.toFixed(2)}) entre l'apport d'engrais et le rendement. Les doses plus élevées correspondent à de plus faibles récoltes.`,
+        conclusion: "Un phénomène de toxicité (sur-fertilisation) ou de blocage chimique dégrade activement votre potentiel productif.",
+        adviceTitle: "Intervention Urgente",
+        advice: "Réduisez immédiatement les doses. Un excès de salinité est probable. Privilégiez un apport organique pour restaurer le biome du sol."
+      };
+    }
+  };
+
+  const aiInsights = getAIAnalysis();
+
   return (
     <div className="w-full">
         {/* REPORT TEMPLATE (Hidden from UI, used for PDF generation) */}
@@ -171,7 +238,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p style={{ fontSize: '10px', color: '#94a3b8', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Unité de contrôle</p>
-                <p style={{ fontSize: '12px', fontWeight: 'bold', margin: 0 }}>AI Engine v2.4</p>
+                <p style={{ fontSize: '12px', fontWeight: 'bold', margin: 0 }}>AI Engine v3.0</p>
               </div>
               <div>
                 <p style={{ fontSize: '10px', color: '#94a3b8', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Confidentialité</p>
@@ -200,11 +267,12 @@ export default function Dashboard() {
               </div>
               
               <div style={{ flex: '1.2', padding: '25px', backgroundColor: '#064e3b', borderRadius: '16px', color: 'white' }}>
-                <h3 style={{ fontSize: '12px', color: '#34d399', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px' }}>Verdict du moteur AI</h3>
-                <p style={{ fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                  {correlationVal > 0.7 
-                    ? "Excellente corrélation détectée. La stratégie de fertilisation actuelle est très efficace et se traduit directement par des gains de rendement." 
-                    : "Corrélation modérée. Le facteur limitant n'est pas l'engrais seul. Examinez la qualité du drainage ou les micro-nutriments du sol."}
+                <h3 style={{ fontSize: '12px', color: '#34d399', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px' }}>Verdict du moteur AI : {aiInsights.verdict}</h3>
+                <p style={{ fontSize: '13px', lineHeight: '1.6', margin: '0 0 10px 0', color: '#e2e8f0' }}>
+                  {aiInsights.analysis} {aiInsights.conclusion}
+                </p>
+                <p style={{ fontSize: '13px', lineHeight: '1.6', margin: 0, fontWeight: 'bold', color: '#6ee7b7' }}>
+                  Recommandation : {aiInsights.advice}
                 </p>
               </div>
             </div>
@@ -252,7 +320,7 @@ export default function Dashboard() {
                     <td style={{ padding: '10px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Interprétation</td>
                   </tr>
                   {[
-                    { label: 'Coefficient de Pearson (R)', val: correlationVal.toFixed(4), interp: correlationVal > 0.7 ? 'Forte corrélation linéaire' : 'Corrélation faible - D\'autres facteurs dominent', color: correlationVal > 0.7 ? '#059669' : '#dc2626' },
+                    { label: 'Coefficient de Pearson (R)', val: correlationVal.toFixed(4), interp: correlationVal > 0.7 ? 'Forte corrélation linéaire' : correlationVal < -0.3 ? 'Corrélation inverse (Alerte)' : 'Corrélation faible à modérée', color: correlationVal > 0.7 ? '#059669' : correlationVal < -0.3 ? '#dc2626' : '#d97706' },
                     { label: 'Coefficient de Détermination (R²)', val: rSquared, interp: `${(rSquared * 100).toFixed(1)}% de la variation du rendement est expliquée par l'engrais`, color: '#0f172a' },
                     { label: 'Indice de Confiance', val: `${confidenceIndex}%`, interp: 'Niveau de fiabilité statistique du modèle', color: '#0f172a' }
                   ].map((row, i) => (
@@ -409,28 +477,22 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                <div className="space-y-4">
                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-body-md">
-                   {stats?.matrice_correlation?.quantite_engrais?.rendement_final !== undefined ? (
-                     <>
-                       L'analyse croisée des données révèle une corrélation de <span className="font-bold text-emerald-500">{(stats.matrice_correlation.quantite_engrais.rendement_final).toFixed(2)}</span> entre la fertilisation et le rendement. 
-                       {stats.matrice_correlation.quantite_engrais.rendement_final > 0.8 ? 
-                         " Ce score exceptionnel démontre que vos rendements sont quasi-exclusivement pilotés par la précision de vos intrants." : 
-                         stats.matrice_correlation.quantite_engrais.rendement_final > 0.5 ? 
-                         " Cela indique une dépendance positive forte : chaque kilo d'engrais supplémentaire contribue significativement à la récolte." : 
-                         " La corrélation est modérée, suggérant que des facteurs externes (irrigation, qualité du sol) jouent un rôle tampon important."}
-                     </>
-                   ) : "Données insuffisantes pour une analyse approfondie."}
+                   {aiInsights.analysis}
+                   <br/><br/>
+                   <span className="font-bold text-emerald-800 dark:text-emerald-200">Conclusion : </span>
+                   {aiInsights.conclusion}
                  </p>
                </div>
-               <div className="bg-emerald-50/50 dark:bg-emerald-900/20 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-800 flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm text-emerald-500">
-                    <span className="material-symbols-outlined">rocket_launch</span>
+               <div className={`p-6 rounded-2xl border flex items-center gap-4 ${correlationVal < -0.3 ? 'bg-red-50/50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-emerald-50/50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800'}`}>
+                  <div className={`w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-sm ${correlationVal < -0.3 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    <span className="material-symbols-outlined">{correlationVal < -0.3 ? 'warning' : 'rocket_launch'}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-emerald-900 dark:text-emerald-100 text-sm">Action Recommandée</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {stats?.matrice_correlation?.quantite_engrais?.rendement_final > 0.7 
-                        ? "Optimisez vos coûts en testant des micro-doses ciblées sur les parcelles à faible rendement."
-                        : "Concentrez-vous sur l'amélioration de l'irrigation pour débloquer le potentiel des engrais."}
+                    <p className={`font-bold text-sm ${correlationVal < -0.3 ? 'text-red-900 dark:text-red-100' : 'text-emerald-900 dark:text-emerald-100'}`}>
+                      {aiInsights.adviceTitle}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                      {aiInsights.advice}
                     </p>
                   </div>
                </div>

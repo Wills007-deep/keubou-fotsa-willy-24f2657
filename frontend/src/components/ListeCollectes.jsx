@@ -22,8 +22,17 @@ export default function ListeCollectes() {
 
   const fetchCollectes = async () => {
     try {
+      const cachedCollectes = sessionStorage.getItem('agro_collectes');
+      if (cachedCollectes) {
+        setCollectes(JSON.parse(cachedCollectes));
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       const response = await axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`);
       setCollectes(response.data);
+      sessionStorage.setItem('agro_collectes', JSON.stringify(response.data));
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
@@ -160,7 +169,7 @@ export default function ListeCollectes() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">
-                      {c.participant_name || 'Anonyme'}
+                      {c.participant_name || c.operator || 'Anonyme'}
                     </span>
                   </td>
                   <td className="hidden md:table-cell px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{c.region || '-'}</td>

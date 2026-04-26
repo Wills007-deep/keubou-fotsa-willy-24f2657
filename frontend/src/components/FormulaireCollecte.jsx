@@ -43,7 +43,7 @@ export default function FormulaireCollecte() {
     culture_type: '',
     custom_culture: '',
     plantation_name: '',
-    operator: '',
+    participant_name: '',
     surface: '',
     quantite_engrais: '',
     volume_eau: '',
@@ -92,7 +92,7 @@ export default function FormulaireCollecte() {
         culture_type: isCustom ? 'Autre' : collecte.culture_type,
         custom_culture: isCustom ? collecte.culture_type : '',
         plantation_name: collecte.plantation_name || '',
-        operator: collecte.operator || '',
+        participant_name: collecte.participant_name || collecte.operator || '',
         surface: collecte.surface,
         quantite_engrais: collecte.quantite_engrais,
         volume_eau: collecte.volume_eau || '',
@@ -324,8 +324,8 @@ export default function FormulaireCollecte() {
                   <input name="plantation_name" value={formData.plantation_name} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Ferme de Njombé" />
                 </div>
                 <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-slate-400">OPÉRATEUR</label>
-                  <input name="operator" value={formData.operator} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Nom de l'agronome" />
+                  <label className="font-label-caps text-label-caps text-slate-400">NOM DU PARTICIPANT</label>
+                  <input name="participant_name" value={formData.participant_name} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Jean Dupont" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
