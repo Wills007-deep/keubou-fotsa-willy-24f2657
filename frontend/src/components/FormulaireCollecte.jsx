@@ -67,6 +67,7 @@ export default function FormulaireCollecte() {
   const [regionOptions] = useState(['Centre', 'Littoral', 'Ouest', 'Nord', 'Sud', 'Est', 'Adamaoua', 'Extrême-Nord', 'Nord-Ouest', 'Sud-Ouest']);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchRecent();
     if (isEdit && collecteId) {
       loadCollecte();
@@ -219,10 +220,91 @@ export default function FormulaireCollecte() {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-gutter">
           <div className="col-span-12 lg:col-span-8 space-y-gutter">
-            {/* Step 1 */}
+            
+            {/* Step 1: GEOLOCATION AT THE TOP */}
+            <div className="bg-white rounded-[16px] overflow-hidden shadow-sm border border-emerald-900/5">
+              <div className="p-6 bg-emerald-50 border-b border-emerald-900/5 flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                  <div>
+                    <h3 className="font-h3 text-lg text-emerald-900">Localisation Géographique</h3>
+                    <p className="text-xs text-emerald-700 font-bold mt-1">Étape prioritaire : Veuillez commencer par rechercher ou pointer votre position précise sur la carte.</p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                  <div className="relative flex-1">
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearchLocation(); } }}
+                      placeholder="Rechercher une ville, un village..."
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-emerald-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md"
+                    />
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSearchLocation}
+                    className="bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    Rechercher
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={getCurrentLocation} 
+                    title="Ma position actuelle" 
+                    className="bg-white border border-slate-200 text-primary hover:bg-emerald-50 px-4 py-3 rounded-xl transition-colors flex items-center justify-center"
+                  >
+                     <span className="material-symbols-outlined">my_location</span>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="h-[350px] relative z-0">
+                <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+                  <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
+                  <MapClick onLocationSelect={handleLocationSelect} />
+                  <MapRecenter center={mapCenter} />
+                  {selectedLocation && <Marker position={selectedLocation} />}
+                </MapContainer>
+                {selectedLocation && (
+                  <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-xl text-xs font-mono shadow-lg border border-slate-200 z-[400] text-slate-700">
+                    <span className="font-bold text-emerald-800">Coordonnées : </span>
+                    {selectedLocation[0].toFixed(5)}, {selectedLocation[1].toFixed(5)}
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-6 border-t border-slate-100 bg-white">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
+                  <div className="space-y-sm">
+                    <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Région Détectée / Sélectionnée</label>
+                    <select name="region" value={formData.region} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md bg-white">
+                      <option value="">Sélectionner Région</option>
+                      {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-sm">
+                    <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Type de Sol (Optionnel)</label>
+                    <select name="soil_type" value={formData.soil_type} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md bg-white">
+                      <option value="">Sélectionner Sol</option>
+                      {soilOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-sm">
+                  <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE</label>
+                  <input name="nom_lieu" value={formData.nom_lieu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" placeholder="Ex: Bloc Sud 4-B (Optionnel si région trouvée)" />
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2 */}
             <div className="bg-white rounded-[16px] p-8 shadow-sm border border-emerald-900/5">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">1</div>
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">2</div>
                 <h3 className="font-h3 text-h3 text-emerald-900">Culture & Plantation</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
@@ -249,34 +331,6 @@ export default function FormulaireCollecte() {
                     <input name="custom_culture" value={formData.custom_culture} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary font-body-md" placeholder="Ex. Poivre de Penja" />
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* Step 2: NEW FIELDS */}
-            <div className="bg-white rounded-[16px] p-8 shadow-sm border border-emerald-900/5">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">2</div>
-                <h3 className="font-h3 text-h3 text-emerald-900">Localisation & Sol</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-md mb-6">
-                <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Région</label>
-                  <select name="region" value={formData.region} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md bg-white">
-                    <option value="">Sélectionner Région</option>
-                    {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-sm">
-                  <label className="font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Type de Sol (Optionnel)</label>
-                  <select name="soil_type" value={formData.soil_type} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md bg-white">
-                    <option value="">Sélectionner Sol</option>
-                    {soilOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-sm">
-                <label className="font-label-caps text-label-caps text-slate-400">LIEU PRÉCIS / PARCELLE</label>
-                <input name="nom_lieu" value={formData.nom_lieu} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 font-body-md" placeholder="Ex: Bloc Sud 4-B" />
               </div>
             </div>
 
@@ -322,51 +376,8 @@ export default function FormulaireCollecte() {
 
           {/* Right Sidebar */}
           <div className="col-span-12 lg:col-span-4 space-y-gutter">
-            <div className="bg-white rounded-[16px] overflow-hidden shadow-sm border border-emerald-900/5">
-              <div className="p-4 bg-emerald-50 border-b border-emerald-900/5 flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-emerald-900 text-sm">Géolocalisation</h4>
-                  <button type="button" onClick={getCurrentLocation} title="Ma position actuelle" className="text-primary hover:bg-white p-1 rounded-full transition-colors">
-                     <span className="material-symbols-outlined text-sm">my_location</span>
-                  </button>
-                </div>
-                <div className="relative flex gap-2">
-                  <div className="relative flex-1">
-                    <input 
-                      type="text" 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearchLocation(); } }}
-                      placeholder="Rechercher un lieu..."
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-emerald-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                    />
-                    <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSearchLocation}
-                    className="bg-primary text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap"
-                  >
-                    OK
-                  </button>
-                </div>
-              </div>
-              <div className="h-64 relative z-0">
-                <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer url={isDarkMode ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"} />
-                  <MapClick onLocationSelect={handleLocationSelect} />
-                  <MapRecenter center={mapCenter} />
-                  {selectedLocation && <Marker position={selectedLocation} />}
-                </MapContainer>
-                {selectedLocation && (
-                  <div className="absolute bottom-2 left-2 right-2 bg-white/90 p-2 rounded-lg text-[10px] font-mono shadow-sm z-[400]">
-                    {selectedLocation[0].toFixed(4)}, {selectedLocation[1].toFixed(4)}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-[16px] p-6 shadow-sm border border-emerald-900/5">
+            
+            <div className="bg-white rounded-[16px] p-6 shadow-sm border border-emerald-900/5 sticky top-24">
               <h4 className="font-bold text-emerald-900 mb-4 flex items-center gap-2">
                  <span className="material-symbols-outlined text-sm">history</span> Soumissions Récentes
               </h4>
@@ -383,6 +394,9 @@ export default function FormulaireCollecte() {
                   </div>
                 ))}
               </div>
+              {recentCollectes.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">Aucune donnée récente</p>
+              )}
             </div>
           </div>
         </form>
