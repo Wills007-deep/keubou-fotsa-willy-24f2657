@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../api';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
 const COLORS = ['#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#064e3b'];
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -45,8 +44,8 @@ export default function Dashboard() {
 
       setError(null);
       const [statsRes, collectesRes] = await Promise.all([
-        axios.get(`${API_BASE}/stats/`),
-        axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`)
+        apiClient.get('/stats/'),
+        apiClient.get('/collectes/?skip=0&limit=1000')
       ]);
       
       const newStats = statsRes.data || {};
@@ -60,7 +59,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Erreur API:', err);
       if (!sessionStorage.getItem('agro_stats')) {
-        setError("Impossible de récupérer les analyses. Le serveur est peut-être en train de redémarrer (patientez 30s).");
+        setError("Synchronisation prolongée : Le serveur de données s'initialise (cela peut prendre jusqu'à 1 minute sur mobile). Veuillez patienter ou réessayer.");
         setStats({}); 
         setCollectes([]);
       }
@@ -375,7 +374,7 @@ export default function Dashboard() {
               Rapport PDF
             </button>
             <a 
-              href={`${API_BASE}/stats/export`}
+              href={`${apiClient.defaults.baseURL}/stats/export`}
               className="bg-emerald-900 text-white font-bold px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 hover:brightness-110 transition-all active:scale-95"
             >
               <span className="material-symbols-outlined text-[20px]">table_view</span>

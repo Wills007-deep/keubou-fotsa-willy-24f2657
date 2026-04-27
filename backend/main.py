@@ -29,4 +29,8 @@ app.include_router(stats.router)
 
 @app.get("/")
 def read_root():
-    return {"status": "online"}
+    return {"status": "online", "version": "1.0.0"}
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "healthy", "service": "AgroAnalytics API"}

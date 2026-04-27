@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../api';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
 
 export default function ListeCollectes() {
   const navigate = useNavigate();
@@ -30,7 +28,7 @@ export default function ListeCollectes() {
         setLoading(true);
       }
 
-      const response = await axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`);
+      const response = await apiClient.get('/collectes/?skip=0&limit=1000');
       setCollectes(response.data);
       sessionStorage.setItem('agro_collectes', JSON.stringify(response.data));
     } catch (error) {
@@ -57,7 +55,7 @@ export default function ListeCollectes() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/collectes/${id}`);
+      await apiClient.delete(`/collectes/${id}`);
       setCollectes(collectes.filter(c => c.id_collecte !== id));
       setDeleteConfirm(null);
     } catch (error) {

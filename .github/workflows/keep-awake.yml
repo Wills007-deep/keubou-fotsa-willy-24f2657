@@ -14,5 +14,5 @@ jobs:
       - name: Ping API
         run: |
           echo "Réveil de l'API AgroAnalytics..."
-          curl -s "https://agroanalytics-api.render.com/" > /dev/null
+          curl -s "https://keubou-fotsa-willy-24f2657.onrender.com/" > /dev/null
           echo "Ping terminé !"

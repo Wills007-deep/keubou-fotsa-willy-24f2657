@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import axios from 'axios';
+import apiClient from '../api';
 import { getRegionFromLocation } from '../utils/locationMapping';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -78,14 +76,14 @@ export default function FormulaireCollecte() {
 
   const fetchRecent = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/collectes/?limit=5`);
+      const res = await apiClient.get('/collectes/?limit=5');
       setRecentCollectes(res.data);
     } catch (e) { console.error(e); }
   };
 
   const loadCollecte = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/collectes/${collecteId}`);
+      const response = await apiClient.get(`/collectes/${collecteId}`);
       const collecte = response.data;
       const isCustom = !cropOptions.includes(collecte.culture_type);
       setFormData({
@@ -207,9 +205,9 @@ export default function FormulaireCollecte() {
       delete payload.custom_culture;
 
       if (isEdit) {
-        await axios.put(`${API_BASE}/collectes/${collecteId}`, payload);
+        await apiClient.put(`/collectes/${collecteId}`, payload);
       } else {
-        await axios.post(`${API_BASE}/collectes/`, payload);
+        await apiClient.post('/collectes/', payload);
       }
       navigate('/collectes');
     } catch (error) {

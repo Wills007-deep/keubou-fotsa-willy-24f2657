@@ -72,6 +72,7 @@ export default function Onboarding() {
             <img 
               src={slides[currentSlide].image} 
               alt={slides[currentSlide].title} 
+              loading={currentSlide === 0 ? "eager" : "lazy"}
               className="relative rounded-[32px] shadow-2xl border-4 border-white w-full max-w-[500px] object-cover aspect-square"
             />
           </div>

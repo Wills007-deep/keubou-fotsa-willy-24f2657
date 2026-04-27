@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
 
 export default function Accueil() {
   const navigate = useNavigate();
@@ -28,8 +26,8 @@ export default function Accueil() {
       }
 
       const [statsRes, collectesRes] = await Promise.all([
-        axios.get(`${API_BASE}/stats/`),
-        axios.get(`${API_BASE}/collectes/?skip=0&limit=1000`)
+        apiClient.get('/stats/'),
+        apiClient.get('/collectes/?skip=0&limit=1000')
       ]);
       
       const newStats = statsRes.data || {};
@@ -78,7 +76,15 @@ export default function Accueil() {
 
   const activityData = getActivityData();
 
-  if (loading) return <div className="p-12 text-center font-bold text-primary">Initialisation du centre de pilotage...</div>;
+  if (loading) return (
+    <div className="w-full py-20 flex flex-col items-center justify-center gap-6">
+      <div className="w-16 h-16 border-4 border-emerald-900/10 border-t-emerald-900 rounded-full animate-spin"></div>
+      <div className="space-y-2 text-center">
+        <h2 className="text-xl font-bold text-emerald-900 animate-pulse">Initialisation du centre de pilotage</h2>
+        <p className="text-slate-500 text-sm">Synchronisation de vos données agricoles...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="w-full">
@@ -110,6 +116,7 @@ export default function Accueil() {
             <img 
               alt="Modern Farm" 
               className="w-full h-full object-cover" 
+              loading="lazy"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZxLLCE0-cqItewveWId4LB-_sAXr40m4Pg73XwhATo22mnCxAo4lrCIkfRq2NrJcr6Sao6MilQ3jhaDUGKMWhzotoDeTaAnsAfBiuxX5vm9QgY31gExmVoCvDl6rtQ569owmyY_9mQgGZYkj_ii83htkvKPdYRqC6-GOWN23qibzvPM54Eym2nhuLKtPDJXd9SLPabfvm5o7koUz9SIZwxbmaCOI0KqjE0Bg7Dvrdbd5njbcqph1dsBQK26-imB-JjVI-fWhGzEcP"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/40 to-transparent"></div>
