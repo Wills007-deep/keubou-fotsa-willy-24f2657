@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import apiClient from '../api';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -6,7 +6,16 @@ import L from 'leaflet';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const COLORS = ['#065f46', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#064e3b'];
+const COLORS = [
+  '#10b981', // Emerald
+  '#f59e0b', // Amber
+  '#3b82f6', // Blue
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#f43f5e', // Rose
+  '#84cc16'  // Lime
+];
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -98,24 +107,24 @@ export default function Dashboard() {
     }
   };
 
-  const getCultureDistribution = () => {
-    const distribution = {};
+  const cultureDistribution = useMemo(() => {
+    const dist = {};
     collectes.forEach(c => {
-      distribution[c.culture_type] = (distribution[c.culture_type] || 0) + 1;
+      const type = (c.culture_type || 'Inconnu').trim();
+      dist[type] = (dist[type] || 0) + 1;
     });
-    return Object.entries(distribution).map(([culture, count]) => ({
-      name: culture,
-      value: count
-    }));
-  };
+    return Object.entries(dist)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
+  }, [collectes]);
 
-  const getScatterData = () => {
+  const scatterData = useMemo(() => {
     return collectes.map(c => ({
       x: c.quantite_engrais || 0,
       y: c.rendement_final || 0,
       culture: c.culture_type
     }));
-  };
+  }, [collectes]);
 
   if (loading) {
     return (
@@ -434,7 +443,7 @@ export default function Dashboard() {
                   <XAxis type="number" dataKey="x" name="Engrais" unit="kg" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
                   <YAxis type="number" dataKey="y" name="Rendement" unit="t" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
                   <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter name="Parcelles" data={getScatterData()} fill="#10b981" />
+                  <Scatter name="Parcelles" data={scatterData} fill="#10b981" />
                 </ScatterChart>
               </ResponsiveContainer>
             </div>
@@ -445,15 +454,15 @@ export default function Dashboard() {
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={getCultureDistribution()} cx="50%" cy="50%" outerRadius={110} dataKey="value" stroke="#fff" strokeWidth={2}>
-                    {getCultureDistribution().map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  <Pie data={cultureDistribution} cx="50%" cy="50%" outerRadius={110} dataKey="value" stroke="#fff" strokeWidth={2}>
+                    {cultureDistribution.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(value, name) => [`${value} parcelle(s)`, name]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 justify-center">
-              {getCultureDistribution().map((entry, index) => (
+              {cultureDistribution.map((entry, index) => (
                 <div key={entry.name} className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{backgroundColor: COLORS[index % COLORS.length]}}></span>
                   <span className="text-slate-600 dark:text-slate-400 font-medium">{entry.name} ({entry.value})</span>
