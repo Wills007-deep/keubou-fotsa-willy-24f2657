@@ -27,10 +27,10 @@ app.include_router(collectes.router)
 app.include_router(stats.router)
 
 
-@app.get("/", methods=["GET", "HEAD"])
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"status": "online", "version": "1.0.0"}
 
-@app.get("/api/health", methods=["GET", "HEAD"])
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health_check():
     return {"status": "healthy", "service": "AgroAnalytics API"}
