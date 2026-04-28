@@ -5,12 +5,27 @@ import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import Layout from './components/ui/Layout';
 
-// Lazy loaded components
-const Accueil = lazy(() => import('./components/Accueil'));
-const ListeCollectes = lazy(() => import('./components/ListeCollectes'));
-const FormulaireCollecte = lazy(() => import('./components/FormulaireCollecte'));
-const Dashboard = lazy(() => import('./components/Dashboard'));
-const Onboarding = lazy(() => import('./components/Onboarding'));
+// Utilitaire pour réessayer le chargement des composants en cas d'erreur réseau (Orange/MTN)
+const lazyRetry = (componentImport) => {
+  return lazy(async () => {
+    for (let i = 0; i < 3; i++) {
+      try {
+        return await componentImport();
+      } catch (error) {
+        if (i === 2) throw error; // Échec final après 3 tentatives
+        console.warn(`[AgroAnalytics] Échec de chargement du module, tentative ${i + 2}/3...`);
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Attendre 1.5s avant de réessayer
+      }
+    }
+  });
+};
+
+// Lazy loaded components avec Retry
+const Accueil = lazyRetry(() => import('./components/Accueil'));
+const ListeCollectes = lazyRetry(() => import('./components/ListeCollectes'));
+const FormulaireCollecte = lazyRetry(() => import('./components/FormulaireCollecte'));
+const Dashboard = lazyRetry(() => import('./components/Dashboard'));
+const Onboarding = lazyRetry(() => import('./components/Onboarding'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-surface">
