@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import apiClient from '../api';
+import ConnectionStatus from './ui/ConnectionStatus';
 import { getRegionFromLocation } from '../utils/locationMapping';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -64,24 +65,15 @@ export default function FormulaireCollecte() {
   const [soilOptions] = useState(['Inconnu', 'Argileux', 'Sablonneux', 'Limoneux', 'Ferralitique', 'Volcanique', 'Humifère']);
   const [regionOptions] = useState(['Centre', 'Littoral', 'Ouest', 'Nord', 'Sud', 'Est', 'Adamaoua', 'Extrême-Nord', 'Nord-Ouest', 'Sud-Ouest']);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    fetchRecent();
-    if (isEdit && collecteId) {
-      loadCollecte();
-    } else {
-      getCurrentLocation();
-    }
-  }, [collecteId, isEdit]);
-
-  const fetchRecent = async () => {
+  const fetchRecent = useCallback(async () => {
     try {
       const res = await apiClient.get('/collectes/?limit=5');
       setRecentCollectes(res.data);
     } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const loadCollecte = async () => {
+  const loadCollecte = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await apiClient.get(`/collectes/${collecteId}`);
       const collecte = response.data;
@@ -108,8 +100,21 @@ export default function FormulaireCollecte() {
       }
     } catch (error) {
       console.error('Erreur:', error);
+      setErrors(prev => ({ ...prev, load: 'Impossible de charger les données de cette collecte.' }));
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [collecteId, cropOptions]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchRecent();
+    if (isEdit && collecteId) {
+      loadCollecte();
+    } else {
+      getCurrentLocation();
+    }
+  }, [collecteId, isEdit, fetchRecent, loadCollecte]);
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -228,6 +233,8 @@ export default function FormulaireCollecte() {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-gutter">
           <div className="col-span-12 lg:col-span-8 space-y-gutter">
+            <ConnectionStatus onRetry={isEdit ? loadCollecte : fetchRecent} compact />
+            
             
             {/* Step 1: GEOLOCATION AT THE TOP */}
             <div className="bg-white rounded-[16px] overflow-hidden shadow-sm border border-emerald-900/5">

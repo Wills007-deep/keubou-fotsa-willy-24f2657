@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import apiClient from '../api';
+import ConnectionStatus from './ui/ConnectionStatus';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -34,11 +35,7 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const reportRef = useRef(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Stale-While-Revalidate (SWR) Caching pour chargement instantané
       const cachedStats = sessionStorage.getItem('agro_stats');
@@ -68,14 +65,18 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Erreur API:', err);
       if (!sessionStorage.getItem('agro_stats')) {
-        setError("Synchronisation prolongée : Le serveur de données s'initialise (cela peut prendre jusqu'à 1 minute sur mobile). Veuillez patienter ou réessayer.");
+        setError(true);
         setStats({}); 
         setCollectes([]);
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const exportPDF = async () => {
     if (!reportRef.current) return;
@@ -126,25 +127,10 @@ export default function Dashboard() {
     }));
   }, [collectes]);
 
-  if (loading) {
+  if ((loading || error) && collectes.length === 0) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-4 text-center">
-           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-           <div className="text-emerald-900 dark:text-emerald-100 font-bold animate-pulse text-sm uppercase tracking-widest">Récupération des données en cours...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && collectes.length === 0) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-4 text-center max-w-md p-8 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100">
-           <span className="material-symbols-outlined text-4xl text-red-500">cloud_off</span>
-           <p className="font-bold text-red-800 dark:text-red-300">{error}</p>
-           <button onClick={fetchData} className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors">Réessayer</button>
-        </div>
+      <div className="w-full py-20">
+        <ConnectionStatus onRetry={fetchData} />
       </div>
     );
   }

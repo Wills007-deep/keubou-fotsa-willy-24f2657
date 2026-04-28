@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import apiClient from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import ConnectionStatus from './ui/ConnectionStatus';
 
 export default function Accueil() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [collectes, setCollectes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasFailed, setHasFailed] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
+      // Cache-first: afficher les données en cache immédiatement
       const cachedStats = sessionStorage.getItem('agro_stats');
       const cachedCollectes = sessionStorage.getItem('agro_collectes');
       if (cachedStats && cachedCollectes) {
         setStats(JSON.parse(cachedStats));
         setCollectes(JSON.parse(cachedCollectes));
         setLoading(false);
+        setHasFailed(false);
       } else {
         setLoading(true);
       }
@@ -35,19 +35,25 @@ export default function Accueil() {
       
       setStats(newStats);
       setCollectes(newCollectes);
+      setHasFailed(false);
       
       sessionStorage.setItem('agro_stats', JSON.stringify(newStats));
       sessionStorage.setItem('agro_collectes', JSON.stringify(newCollectes));
     } catch (error) {
       console.error('Erreur:', error);
       if (!sessionStorage.getItem('agro_stats')) {
+        setHasFailed(true);
         setStats({});
         setCollectes([]);
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const getCurrentSeason = () => {
     const month = new Date().getMonth();
@@ -76,18 +82,26 @@ export default function Accueil() {
 
   const activityData = getActivityData();
 
-  if (loading) return (
-    <div className="w-full py-20 flex flex-col items-center justify-center gap-6">
-      <div className="w-16 h-16 border-4 border-emerald-900/10 border-t-emerald-900 rounded-full animate-spin"></div>
-      <div className="space-y-2 text-center">
-        <h2 className="text-xl font-bold text-emerald-900 animate-pulse">Initialisation du centre de pilotage</h2>
-        <p className="text-slate-500 text-sm">Synchronisation de vos données agricoles...</p>
-      </div>
+  // Si on a des données en cache, on les affiche même si le serveur est down
+  const hasData = stats && Object.keys(stats).length > 0;
+
+  if (loading && !hasData) return (
+    <div className="w-full py-20">
+      <ConnectionStatus onRetry={fetchData} />
+    </div>
+  );
+
+  if (hasFailed && !hasData) return (
+    <div className="w-full py-20">
+      <ConnectionStatus onRetry={fetchData} />
     </div>
   );
 
   return (
     <div className="w-full">
+      {/* Bandeau compact si on utilise les données en cache et que le serveur est down */}
+      <ConnectionStatus onRetry={fetchData} compact />
+
       {/* ... Hero Section unchanged ... */}
       <section className="grid grid-cols-12 gap-gutter mb-xl">
         <div className="col-span-12 lg:col-span-7 flex flex-col justify-center">

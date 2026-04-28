@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api';
+import ConnectionStatus from './ui/ConnectionStatus';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -18,7 +19,7 @@ export default function ListeCollectes() {
     fetchCollectes();
   }, []);
 
-  const fetchCollectes = async () => {
+  const fetchCollectes = useCallback(async () => {
     try {
       const cachedCollectes = sessionStorage.getItem('agro_collectes');
       if (cachedCollectes) {
@@ -36,7 +37,7 @@ export default function ListeCollectes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const exportPDF = async () => {
     if (!listRef.current) return;
@@ -85,8 +86,8 @@ export default function ListeCollectes() {
     : 'N/A';
 
   if (loading && collectes.length === 0) return (
-    <div className="w-full h-screen flex items-center justify-center dark:bg-slate-950">
-       <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+    <div className="w-full py-20">
+      <ConnectionStatus onRetry={fetchCollectes} />
     </div>
   );
 

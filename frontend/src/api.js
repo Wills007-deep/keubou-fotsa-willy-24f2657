@@ -3,42 +3,139 @@ import axios from 'axios';
 // URL de production Render
 const API_URL = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
 
-// Configuration de l'instance Axios
+// ========================================================================
+// État de connexion global — permet aux composants de réagir intelligemment
+// ========================================================================
+let _connectionState = 'idle'; // idle | connecting | warming | online | offline
+const _listeners = new Set();
+
+export const ConnectionState = {
+  get current() { return _connectionState; },
+  subscribe(fn) { _listeners.add(fn); return () => _listeners.delete(fn); },
+  _set(state) {
+    if (_connectionState !== state) {
+      _connectionState = state;
+      _listeners.forEach(fn => fn(state));
+    }
+  }
+};
+
+// ========================================================================
+// Configuration Axios — timeout court pour compatibilité Orange/MTN
+// ========================================================================
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 60000, // 60 secondes pour laisser le temps à Render de se réveiller (Cold Start)
+  timeout: 15000, // 15s — compatible avec les réseaux mobiles africains (Orange coupe à ~20-30s)
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Système de Retry (Réessais automatiques en cas d'erreur réseau ou timeout)
+// ========================================================================
+// Warm-up du serveur Render (cold start)
+// On ping /api/health AVANT les vraies requêtes.
+// Utilise des requêtes courtes et répétées plutôt qu'une seule longue.
+// ========================================================================
+let _serverReady = false;
+let _warmupPromise = null;
+
+export async function warmupServer() {
+  if (_serverReady) return true;
+  if (_warmupPromise) return _warmupPromise;
+
+  _warmupPromise = _doWarmup();
+  const result = await _warmupPromise;
+  _warmupPromise = null;
+  return result;
+}
+
+async function _doWarmup() {
+  ConnectionState._set('warming');
+  
+  // Essayer 5 fois avec un timeout très court (8s)
+  // Plutôt que d'attendre 60s sur une seule requête (que Orange va tuer),
+  // on fait 5 tentatives rapides de 8s = le serveur a 40s au total pour se réveiller
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      console.log(`[AgroAPI] Warmup tentative ${attempt}/5...`);
+      await axios.get(API_URL.replace('/api', '') + '/', { 
+        timeout: 8000,
+        // Pas de données inutiles, juste un ping
+        headers: { 'Accept': 'application/json' }
+      });
+      _serverReady = true;
+      ConnectionState._set('online');
+      console.log(`[AgroAPI] Serveur en ligne après ${attempt} tentative(s)`);
+      return true;
+    } catch (err) {
+      console.warn(`[AgroAPI] Warmup tentative ${attempt} échouée:`, err.message);
+      // Petite pause entre les tentatives
+      if (attempt < 5) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+  }
+  
+  ConnectionState._set('offline');
+  console.error('[AgroAPI] Serveur injoignable après 5 tentatives');
+  return false;
+}
+
+// Permet de forcer un re-check
+export function resetServerStatus() {
+  _serverReady = false;
+  _warmupPromise = null;
+  ConnectionState._set('idle');
+}
+
+// ========================================================================
+// Intercepteur de retry — max 2 retries avec timeout court
+// ========================================================================
 apiClient.interceptors.response.use(null, async (error) => {
   const { config, response } = error;
   
-  // Si on n'a plus de config ou si on a déjà trop essayé (max 3 tentatives)
-  if (!config || config.__retryCount >= 3) {
+  if (!config || config.__retryCount >= 2) {
+    ConnectionState._set('offline');
     return Promise.reject(error);
   }
 
-  // Vérifier si c'est une erreur de réseau ou un timeout
   const isNetworkError = !response;
   const isServerWakingUp = response && (response.status === 503 || response.status === 504 || response.status === 502);
 
   if (isNetworkError || isServerWakingUp) {
-    config.__retryCount = config.__retryCount || 0;
-    config.__retryCount += 1;
-
-    console.warn(`Tentative de reconnexion ${config.__retryCount}/3 pour Render...`);
+    config.__retryCount = (config.__retryCount || 0) + 1;
+    console.warn(`[AgroAPI] Retry ${config.__retryCount}/2 pour ${config.url}...`);
     
-    // Délai progressif entre les tentatives (2s, 4s, 8s)
-    const delay = Math.pow(2, config.__retryCount) * 1000;
+    // Délai court entre les tentatives (1.5s, 3s)
+    const delay = config.__retryCount * 1500;
     await new Promise(resolve => setTimeout(resolve, delay));
+    
+    // Marquer le serveur comme non-prêt pour forcer un warmup au prochain appel
+    _serverReady = false;
     
     return apiClient(config);
   }
 
   return Promise.reject(error);
+});
+
+// ========================================================================
+// Intercepteur de requête — warmup automatique avant chaque requête
+// ========================================================================
+apiClient.interceptors.request.use(async (config) => {
+  if (!_serverReady) {
+    ConnectionState._set('connecting');
+    const ready = await warmupServer();
+    if (!ready) {
+      // Annuler la requête proprement
+      const controller = new AbortController();
+      controller.abort();
+      config.signal = controller.signal;
+      return config;
+    }
+  }
+  ConnectionState._set('online');
+  return config;
 });
 
 export default apiClient;
