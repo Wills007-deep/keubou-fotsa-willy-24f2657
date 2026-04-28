@@ -11,11 +11,15 @@ import { ConnectionState, warmupServer, resetServerStatus } from '../../api';
  */
 export default function ConnectionStatus({ onRetry, compact = false }) {
   const [state, setState] = useState(ConnectionState.current);
+  const [attempt, setAttempt] = useState(ConnectionState.attempt);
   const [retrying, setRetrying] = useState(false);
   const [dots, setDots] = useState('');
 
   useEffect(() => {
-    return ConnectionState.subscribe(setState);
+    return ConnectionState.subscribe((newState, newAttempt) => {
+      setState(newState);
+      setAttempt(newAttempt);
+    });
   }, []);
 
   // Animation des points de chargement
@@ -40,6 +44,8 @@ export default function ConnectionStatus({ onRetry, compact = false }) {
 
   if (state === 'online' || state === 'idle') return null;
 
+  const maxAttempts = ConnectionState.maxAttempts;
+
   // ── Mode compact (bandeau en haut) ──
   if (compact) {
     return (
@@ -63,7 +69,7 @@ export default function ConnectionStatus({ onRetry, compact = false }) {
         ) : (
           <>
             <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-            <span>Connexion au serveur{dots}</span>
+            <span>Réveil du serveur ({attempt}/{maxAttempts}){dots}</span>
           </>
         )}
       </div>
@@ -84,10 +90,10 @@ export default function ConnectionStatus({ onRetry, compact = false }) {
           </div>
           <div className="space-y-2 text-center max-w-sm">
             <h2 className="text-lg font-bold text-emerald-900 dark:text-emerald-100">
-              Réveil du serveur{dots}
+              Réveil du serveur ({attempt}/{maxAttempts}){dots}
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              Le serveur est en mode économie d'énergie. Il se réveille, cela prend quelques secondes.
+            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed px-4">
+              Le serveur sort de son mode veille. Sur les réseaux **Orange/MTN**, cela peut nécessiter plusieurs tentatives de connexion.
             </p>
             <div className="flex items-center justify-center gap-1.5 mt-3">
               {[1,2,3,4,5].map(i => (
@@ -102,26 +108,6 @@ export default function ConnectionStatus({ onRetry, compact = false }) {
         </>
       )}
 
-      {state === 'connecting' && (
-        <>
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-emerald-200 dark:border-emerald-800 rounded-full"></div>
-            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-emerald-500 rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="material-symbols-outlined text-emerald-500 text-3xl">cell_tower</span>
-            </div>
-          </div>
-          <div className="space-y-2 text-center">
-            <h2 className="text-lg font-bold text-emerald-900 dark:text-emerald-100">
-              Connexion en cours{dots}
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Tentative de connexion au serveur AgroAnalytics.
-            </p>
-          </div>
-        </>
-      )}
-
       {state === 'offline' && (
         <>
           <div className="relative">
@@ -129,14 +115,35 @@ export default function ConnectionStatus({ onRetry, compact = false }) {
               <span className="material-symbols-outlined text-red-500 text-4xl" style={{fontVariationSettings: "'FILL' 1"}}>cloud_off</span>
             </div>
           </div>
-          <div className="space-y-2 text-center max-w-sm">
-            <h2 className="text-lg font-bold text-red-700 dark:text-red-300">
-              Serveur indisponible
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-              Impossible de joindre le serveur. Vérifiez votre connexion internet ou réessayez dans quelques instants.
-            </p>
+          <div className="space-y-4 text-center max-w-sm px-6">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-red-700 dark:text-red-300">
+                Serveur injoignable
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                Impossible d'établir une connexion stable après {maxAttempts} tentatives.
+              </p>
+            </div>
+            
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-left">
+              <p className="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">💡 Conseils Orange/MTN :</p>
+              <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                <li className="flex gap-2">
+                  <span className="text-emerald-500 font-bold">•</span>
+                  Désactivez et réactivez vos données mobiles.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-emerald-500 font-bold">•</span>
+                  Si vous utilisez un VPN, essayez de le désactiver.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-emerald-500 font-bold">•</span>
+                  Vérifiez que votre crédit Data n'est pas épuisé.
+                </li>
+              </ul>
+            </div>
           </div>
+          
           <button 
             onClick={handleRetry}
             disabled={retrying}
@@ -145,20 +152,18 @@ export default function ConnectionStatus({ onRetry, compact = false }) {
             {retrying ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Connexion...
+                Tentative 1/{maxAttempts}...
               </>
             ) : (
               <>
                 <span className="material-symbols-outlined text-base">refresh</span>
-                Réessayer
+                Forcer une nouvelle tentative
               </>
             )}
           </button>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center">
-            💡 Astuce : Si vous êtes sur Orange/MTN, essayez de désactiver puis réactiver vos données mobiles.
-          </p>
         </>
       )}
     </div>
   );
 }
+
