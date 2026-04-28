@@ -52,32 +52,38 @@ export async function warmupServer() {
 async function _doWarmup() {
   ConnectionState._set('warming');
   
-  // Essayer 5 fois avec un timeout très court (8s)
-  // Plutôt que d'attendre 60s sur une seule requête (que Orange va tuer),
-  // on fait 5 tentatives rapides de 8s = le serveur a 40s au total pour se réveiller
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  // Essayer jusqu'à 10 fois avec un timeout court (7s)
+  // Total possible: 70s de patience, mais découpé en petits morceaux de 7s
+  // pour éviter que Orange/MTN ne tue la connexion globale.
+  const MAX_ATTEMPTS = 10;
+  
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      console.log(`[AgroAPI] Warmup tentative ${attempt}/5...`);
+      console.log(`[AgroAPI] Warmup tentative ${attempt}/${MAX_ATTEMPTS}...`);
+      // On ping la racine du backend
       await axios.get(API_URL.replace('/api', '') + '/', { 
-        timeout: 8000,
-        // Pas de données inutiles, juste un ping
+        timeout: 7000, 
         headers: { 'Accept': 'application/json' }
       });
+      
       _serverReady = true;
       ConnectionState._set('online');
       console.log(`[AgroAPI] Serveur en ligne après ${attempt} tentative(s)`);
       return true;
     } catch (err) {
-      console.warn(`[AgroAPI] Warmup tentative ${attempt} échouée:`, err.message);
-      // Petite pause entre les tentatives
-      if (attempt < 5) {
-        await new Promise(r => setTimeout(r, 1500));
+      const isTimeout = err.code === 'ECONNABORTED' || err.message.includes('timeout');
+      console.warn(`[AgroAPI] Tentative ${attempt} : ${isTimeout ? 'Timeout (le serveur se réveille encore)' : err.message}`);
+      
+      // Pause progressive entre les tentatives
+      if (attempt < MAX_ATTEMPTS) {
+        const delay = Math.min(1000 + (attempt * 200), 2000);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
   }
   
   ConnectionState._set('offline');
-  console.error('[AgroAPI] Serveur injoignable après 5 tentatives');
+  console.error(`[AgroAPI] Serveur injoignable après ${MAX_ATTEMPTS} tentatives`);
   return false;
 }
 

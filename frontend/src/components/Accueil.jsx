@@ -14,8 +14,10 @@ export default function Accueil() {
   const fetchData = useCallback(async () => {
     try {
       // Cache-first: afficher les données en cache immédiatement
-      const cachedStats = sessionStorage.getItem('agro_stats');
-      const cachedCollectes = sessionStorage.getItem('agro_collectes');
+      // Utilisation de localStorage pour persister entre les sessions
+      const cachedStats = localStorage.getItem('agro_stats_v2');
+      const cachedCollectes = localStorage.getItem('agro_collectes_v2');
+      
       if (cachedStats && cachedCollectes) {
         setStats(JSON.parse(cachedStats));
         setCollectes(JSON.parse(cachedCollectes));
@@ -37,11 +39,11 @@ export default function Accueil() {
       setCollectes(newCollectes);
       setHasFailed(false);
       
-      sessionStorage.setItem('agro_stats', JSON.stringify(newStats));
-      sessionStorage.setItem('agro_collectes', JSON.stringify(newCollectes));
+      localStorage.setItem('agro_stats_v2', JSON.stringify(newStats));
+      localStorage.setItem('agro_collectes_v2', JSON.stringify(newCollectes));
     } catch (error) {
       console.error('Erreur:', error);
-      if (!sessionStorage.getItem('agro_stats')) {
+      if (!localStorage.getItem('agro_stats_v2')) {
         setHasFailed(true);
         setStats({});
         setCollectes([]);

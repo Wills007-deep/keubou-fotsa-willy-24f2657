@@ -38,8 +38,8 @@ export default function Dashboard() {
   const fetchData = useCallback(async () => {
     try {
       // Stale-While-Revalidate (SWR) Caching pour chargement instantané
-      const cachedStats = sessionStorage.getItem('agro_stats');
-      const cachedCollectes = sessionStorage.getItem('agro_collectes');
+      const cachedStats = localStorage.getItem('agro_stats_v2');
+      const cachedCollectes = localStorage.getItem('agro_collectes_v2');
       if (cachedStats && cachedCollectes) {
         setStats(JSON.parse(cachedStats));
         setCollectes(JSON.parse(cachedCollectes));
@@ -60,11 +60,11 @@ export default function Dashboard() {
       setStats(newStats);
       setCollectes(newCollectes);
       
-      sessionStorage.setItem('agro_stats', JSON.stringify(newStats));
-      sessionStorage.setItem('agro_collectes', JSON.stringify(newCollectes));
+      localStorage.setItem('agro_stats_v2', JSON.stringify(newStats));
+      localStorage.setItem('agro_collectes_v2', JSON.stringify(newCollectes));
     } catch (err) {
       console.error('Erreur API:', err);
-      if (!sessionStorage.getItem('agro_stats')) {
+      if (!localStorage.getItem('agro_stats_v2')) {
         setError(true);
         setStats({}); 
         setCollectes([]);

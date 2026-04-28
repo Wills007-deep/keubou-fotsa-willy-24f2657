@@ -21,7 +21,7 @@ export default function ListeCollectes() {
 
   const fetchCollectes = useCallback(async () => {
     try {
-      const cachedCollectes = sessionStorage.getItem('agro_collectes');
+      const cachedCollectes = localStorage.getItem('agro_collectes_v2');
       if (cachedCollectes) {
         setCollectes(JSON.parse(cachedCollectes));
         setLoading(false);
@@ -31,7 +31,7 @@ export default function ListeCollectes() {
 
       const response = await apiClient.get('/collectes/?skip=0&limit=1000');
       setCollectes(response.data);
-      sessionStorage.setItem('agro_collectes', JSON.stringify(response.data));
+      localStorage.setItem('agro_collectes_v2', JSON.stringify(response.data));
     } catch (error) {
       console.error('Erreur:', error);
     } finally {
