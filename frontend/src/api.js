@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// URL de production Render
-const API_URL = import.meta.env.VITE_API_URL || 'https://keubou-fotsa-willy-24f2657.onrender.com/api';
+// URL Proxy Cloudflare (pour contourner les instabilités Orange/MTN)
+const API_URL = 'https://agro-proxy.willsbusiness88.workers.dev/api';
 
 // ========================================================================
 // État de connexion global — permet aux composants de réagir intelligemment
