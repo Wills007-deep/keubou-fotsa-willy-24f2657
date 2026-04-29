@@ -8,14 +8,14 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const COLORS = [
-  '#10b981', // Emerald
-  '#f59e0b', // Amber
-  '#3b82f6', // Blue
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#f43f5e', // Rose
-  '#84cc16'  // Lime
+  '#1B4332', // Darkest green (Tertiary)
+  '#2D6A4F', // Primary Green
+  '#40916C', 
+  '#52B788', 
+  '#74C69D', 
+  '#95D5B2', // Secondary Green
+  '#B7E4C7',
+  '#D8F3DC'
 ];
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -64,11 +64,7 @@ export default function Dashboard() {
       localStorage.setItem('agro_collectes_v2', JSON.stringify(newCollectes));
     } catch (err) {
       console.error('Erreur API:', err);
-      if (!localStorage.getItem('agro_stats_v2')) {
-        setError(true);
-        setStats({}); 
-        setCollectes([]);
-      }
+      // On garde les données en cache si erreur réseau
     } finally {
       setLoading(false);
     }
@@ -127,10 +123,11 @@ export default function Dashboard() {
     }));
   }, [collectes]);
 
-  if ((loading || error) && collectes.length === 0) {
+  if (loading && collectes.length === 0) {
     return (
-      <div className="w-full py-20">
-        <ConnectionStatus onRetry={fetchData} />
+      <div className="w-full py-32 flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium">Chargement des analyses...</p>
       </div>
     );
   }

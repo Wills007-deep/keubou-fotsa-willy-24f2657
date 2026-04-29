@@ -3,81 +3,22 @@ import axios from 'axios';
 // URL Proxy Cloudflare (pour contourner les instabilités Orange/MTN)
 const API_URL = 'https://agro-proxy.willsbusiness88.workers.dev/api';
 
-// ========================================================================
-// État de connexion global — permet aux composants de réagir intelligemment
-// ========================================================================
-let _connectionState = 'idle'; // idle | connecting | warming | online | offline
-let _currentAttempt = 0;
-const MAX_ATTEMPTS = 25;
-const _listeners = new Set();
-
+// État de connexion simplifié
 export const ConnectionState = {
-  get current() { return _connectionState; },
-  get attempt() { return _currentAttempt; },
-  get maxAttempts() { return MAX_ATTEMPTS; },
-  subscribe(fn) { _listeners.add(fn); return () => _listeners.delete(fn); },
-  _set(state, attempt = 0) {
-    _currentAttempt = attempt;
-    if (_connectionState !== state || _currentAttempt !== attempt) {
-      _connectionState = state;
-      _listeners.forEach(fn => fn(state, attempt));
-    }
+  current: 'online',
+  listeners: [],
+  subscribe(callback) {
+    this.listeners.push(callback);
+    return () => { this.listeners = this.listeners.filter(l => l !== callback); };
+  },
+  update(state) {
+    this.current = state;
+    this.listeners.forEach(l => l(state));
   }
 };
 
-// ========================================================================
-// Configuration Axios — timeout court pour compatibilité Orange/MTN
-// ========================================================================
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 20000, // Augmenté à 20s pour les réseaux très lents
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// ========================================================================
-// Warm-up du serveur Render (cold start)
-// On ping /api/health AVANT les vraies requêtes.
-// ========================================================================
-let _serverReady = false;
-let _warmupPromise = null;
-
-export async function warmupServer() {
-  if (_serverReady) return true;
-  if (_warmupPromise) return _warmupPromise;
-
-  _warmupPromise = _doWarmup();
-  const result = await _warmupPromise;
-  _warmupPromise = null;
-  return result;
-}
-
-async function _doWarmup() {
-  ConnectionState._set('warming', 1);
-  
-  // Jusqu'à 25 tentatives (patience de ~4-5 minutes si nécessaire)
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      _currentAttempt = attempt;
-      ConnectionState._set('warming', attempt);
-      console.log(`[AgroAPI] Warmup tentative ${attempt}/${MAX_ATTEMPTS}...`);
-      
-      // On ping la racine du backend avec un timeout de 12s
-      await axios.get(API_URL.replace('/api', '') + '/', { 
-        timeout: 12000, 
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      _serverReady = true;
-      ConnectionState._set('online');
-      console.log(`[AgroAPI] Serveur en ligne après ${attempt} tentative(s)`);
-      return true;
-    } catch (err) {
-      const isTimeout = err.code === 'ECONNABORTED' || err.message.includes('timeout');
-      console.warn(`[AgroAPI] Tentative ${attempt} : ${isTimeout ? 'Timeout' : err.message}`);
-      
-      if (attempt < MAX_ATTEMPTS) {
         // Pause entre les tentatives (progressive)
         const delay = Math.min(1000 + (attempt * 100), 2500);
         await new Promise(r => setTimeout(r, delay));

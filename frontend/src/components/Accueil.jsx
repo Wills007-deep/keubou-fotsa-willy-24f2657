@@ -88,21 +88,14 @@ export default function Accueil() {
   const hasData = stats && Object.keys(stats).length > 0;
 
   if (loading && !hasData) return (
-    <div className="w-full py-20">
-      <ConnectionStatus onRetry={fetchData} />
-    </div>
-  );
-
-  if (hasFailed && !hasData) return (
-    <div className="w-full py-20">
-      <ConnectionStatus onRetry={fetchData} />
+    <div className="w-full py-32 flex flex-col items-center justify-center gap-4">
+      <div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
+      <p className="text-slate-400 font-medium tracking-wide">Initialisation de votre espace...</p>
     </div>
   );
 
   return (
     <div className="w-full">
-      {/* Bandeau compact si on utilise les données en cache et que le serveur est down */}
-      <ConnectionStatus onRetry={fetchData} compact />
 
       {/* ... Hero Section unchanged ... */}
       <section className="grid grid-cols-12 gap-gutter mb-xl">
