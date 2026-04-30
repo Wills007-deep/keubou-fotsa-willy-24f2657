@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import apiClient from '../api';
+import apiClient from '../api.js';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import ConnectionStatus from './ui/ConnectionStatus';
 
@@ -33,7 +33,7 @@ export default function Accueil() {
       ]);
       
       const newStats = statsRes.data || {};
-      const newCollectes = collectesRes.data || [];
+      const newCollectes = Array.isArray(collectesRes.data) ? collectesRes.data : [];
       
       setStats(newStats);
       setCollectes(newCollectes);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../api';
+import apiClient from '../api.js';
 import ConnectionStatus from './ui/ConnectionStatus';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -30,8 +30,9 @@ export default function ListeCollectes() {
       }
 
       const response = await apiClient.get('/collectes/?skip=0&limit=1000');
-      setCollectes(response.data);
-      localStorage.setItem('agro_collectes_v2', JSON.stringify(response.data));
+      const data = Array.isArray(response.data) ? response.data : [];
+      setCollectes(data);
+      localStorage.setItem('agro_collectes_v2', JSON.stringify(data));
     } catch (error) {
       console.error('Erreur:', error);
     } finally {

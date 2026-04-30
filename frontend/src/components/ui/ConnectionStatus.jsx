@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ConnectionState, warmupServer, resetServerStatus } from '../../api';
+import { ConnectionState, warmupServer, resetServerStatus } from '../../api.js';
 
 /**
  * ConnectionStatus — Composant qui affiche l'état de connexion au serveur.

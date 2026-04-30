@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import apiClient from '../api';
+import apiClient from '../api.js';
 import ConnectionStatus from './ui/ConnectionStatus';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -55,7 +55,7 @@ export default function Dashboard() {
       ]);
       
       const newStats = statsRes.data || {};
-      const newCollectes = collectesRes.data || [];
+      const newCollectes = Array.isArray(collectesRes.data) ? collectesRes.data : [];
       
       setStats(newStats);
       setCollectes(newCollectes);

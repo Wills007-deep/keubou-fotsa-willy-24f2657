@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import apiClient from '../api';
+import apiClient from '../api.js';
 import ConnectionStatus from './ui/ConnectionStatus';
 import { getRegionFromLocation } from '../utils/locationMapping';
 
