@@ -3,8 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routers import collectes, stats, auth
 
-# Création automatique des tables (Mise à jour effectuée)
-Base.metadata.create_all(bind=engine)
+# Création automatique des tables (Avec gestion d'erreur pour éviter le crash au démarrage)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("SUCCESS: Database tables verified/created.")
+except Exception as e:
+    print(f"WARNING: Could not connect to database at startup: {e}")
+    # On continue pour permettre à l'API de répondre (ex: health check) même si la DB est down
 
 app = FastAPI(title="AgroAnalytics API Pro")
 
