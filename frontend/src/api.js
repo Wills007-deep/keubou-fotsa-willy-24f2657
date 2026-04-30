@@ -1,19 +1,32 @@
 import axios from 'axios';
 
-// URL Proxy Cloudflare (pour contourner les instabilités Orange/MTN)
-const API_URL = 'https://agro-proxy.willsbusiness88.workers.dev/api';
+// Utilisation de l'API sur le même domaine (Vercel Monorepo)
+const API_URL = '/api';
 
 // État de connexion simplifié pour le UI
 export const ConnectionState = {
   current: 'online',
+  attempt: 1,
+  maxAttempts: 25,
   listeners: [],
   subscribe(callback) {
     this.listeners.push(callback);
+    // On envoie l'état actuel dès l'abonnement
+    callback(this.current, this.attempt);
     return () => { this.listeners = this.listeners.filter(l => l !== callback); };
   },
-  update(state) {
-    this.current = state;
-    this.listeners.forEach(l => l(state));
+  update(state, attempt = 1) {
+    // Si state contient un ":" on extrait l'attempt (cas de "warmup:1/25")
+    if (typeof state === 'string' && state.includes(':')) {
+      const parts = state.split(':');
+      this.current = parts[0];
+      const attemptPart = parts[1].split('/')[0];
+      this.attempt = parseInt(attemptPart);
+    } else {
+      this.current = state;
+      this.attempt = attempt;
+    }
+    this.listeners.forEach(l => l(this.current, this.attempt));
   },
   _set(state) { // Alias pour compatibilité avec le reste du code
     this.update(state);
@@ -28,7 +41,7 @@ const MAX_ATTEMPTS = 25;
  * Tente de réveiller le serveur si celui-ci est en "cold start"
  * ou via le proxy Cloudflare.
  */
-async function warmupServer() {
+export async function warmupServer() {
   if (_serverReady) return true;
   if (_warmupPromise) return _warmupPromise;
 
