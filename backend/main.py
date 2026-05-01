@@ -7,6 +7,13 @@ from routers import collectes, stats, auth
 try:
     Base.metadata.create_all(bind=engine)
     print("SUCCESS: Database tables verified/created.")
+    
+    # DIAGNOSTIC : On vérifie si on voit des données
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        u_count = conn.execute(text("SELECT count(*) FROM users")).scalar()
+        c_count = conn.execute(text("SELECT count(*) FROM collectes")).scalar()
+        print(f"DIAGNOSTIC: Found {u_count} users and {c_count} collectes in database.")
 except Exception as e:
     print(f"WARNING: Could not connect to database at startup: {e}")
     # On continue pour permettre à l'API de répondre (ex: health check) même si la DB est down

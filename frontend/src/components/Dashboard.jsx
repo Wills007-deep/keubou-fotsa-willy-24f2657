@@ -50,8 +50,8 @@ export default function Dashboard() {
 
       setError(null);
       const [statsRes, collectesRes] = await Promise.all([
-        apiClient.get('/stats/'),
-        apiClient.get('/collectes/?skip=0&limit=1000')
+        apiClient.get('/stats'),
+        apiClient.get('/collectes?skip=0&limit=1000')
       ]);
       
       const newStats = statsRes.data || {};

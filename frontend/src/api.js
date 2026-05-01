@@ -51,8 +51,11 @@ export async function warmupServer() {
       try {
         ConnectionState.update(`warmup:${attempt}/${MAX_ATTEMPTS}`);
         
-        // On ping l'endpoint de santé du backend (via le proxy)
-        await axios.get(`${API_URL}/health`, { timeout: 8000 });
+        // On ping l'endpoint de santé du backend
+        // Note: On utilise l'instance axios importée (apiClient peut être intercepté)
+        const healthUrl = `${window.location.origin}${API_URL}/health`;
+        console.log(`[AgroAPI] Warmup attempt ${attempt} -> ${healthUrl}`);
+        await axios.get(healthUrl, { timeout: 8000 });
         
         console.log("[AgroAPI] Serveur prêt !");
         _serverReady = true;

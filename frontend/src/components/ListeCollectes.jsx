@@ -29,7 +29,7 @@ export default function ListeCollectes() {
         setLoading(true);
       }
 
-      const response = await apiClient.get('/collectes/?skip=0&limit=1000');
+      const response = await apiClient.get('/collectes?skip=0&limit=1000');
       const data = Array.isArray(response.data) ? response.data : [];
       setCollectes(data);
       localStorage.setItem('agro_collectes_v2', JSON.stringify(data));
