@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
+from database import engine, Base, SQLALCHEMY_DATABASE_URL
 from routers import collectes, stats, auth
 
 # Création automatique des tables (Avec gestion d'erreur pour éviter le crash au démarrage)
@@ -41,7 +41,13 @@ app.include_router(stats.router)
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
-    return {"status": "online", "version": "1.0.0", "service": "AgroAnalytics API"}
+    db_type = "PostgreSQL (Remote)" if "postgresql" in SQLALCHEMY_DATABASE_URL else "SQLite (Local)"
+    return {
+        "status": "online", 
+        "version": "1.0.0", 
+        "service": "AgroAnalytics API",
+        "database": db_type
+    }
 
 @app.api_route("/api", methods=["GET", "HEAD"])
 def read_api_root():
@@ -49,4 +55,16 @@ def read_api_root():
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def health_check():
-    return {"status": "healthy", "service": "AgroAnalytics API"}
+    db_status = "connected"
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "error"
+        
+    return {
+        "status": "healthy", 
+        "service": "AgroAnalytics API",
+        "database_status": db_status
+    }
