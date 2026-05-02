@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import apiClient from '../api.js';
+import axios from 'axios';
 import ConnectionStatus from './ui/ConnectionStatus';
 import { getRegionFromLocation } from '../utils/locationMapping';
 
@@ -68,8 +69,12 @@ export default function FormulaireCollecte() {
   const fetchRecent = useCallback(async () => {
     try {
       const res = await apiClient.get('/collectes/?limit=5');
-      setRecentCollectes(res.data);
-    } catch (e) { console.error(e); }
+      const data = Array.isArray(res.data) ? res.data : [];
+      setRecentCollectes(data);
+    } catch (e) { 
+      console.error(e); 
+      setRecentCollectes([]);
+    }
   }, []);
 
   const loadCollecte = useCallback(async () => {
@@ -77,22 +82,25 @@ export default function FormulaireCollecte() {
     try {
       const response = await apiClient.get(`/collectes/${collecteId}`);
       const collecte = response.data;
+      
+      if (!collecte) throw new Error("Données de collecte introuvables");
+
       const isCustom = !cropOptions.includes(collecte.culture_type);
       setFormData({
-        culture_type: isCustom ? 'Autre' : collecte.culture_type,
-        custom_culture: isCustom ? collecte.culture_type : '',
+        culture_type: isCustom ? 'Autre' : (collecte.culture_type || ''),
+        custom_culture: isCustom ? (collecte.culture_type || '') : '',
         plantation_name: collecte.plantation_name || '',
         participant_name: collecte.participant_name || collecte.operator || '',
-        surface: collecte.surface,
-        quantite_engrais: collecte.quantite_engrais,
+        surface: collecte.surface || '',
+        quantite_engrais: collecte.quantite_engrais || '',
         volume_eau: collecte.volume_eau || '',
-        rendement_final: collecte.rendement_final,
+        rendement_final: collecte.rendement_final || '',
         date_recolte: collecte.date_recolte ? new Date(collecte.date_recolte).toISOString().split('T')[0] : '',
         region: collecte.region || '',
         soil_type: collecte.soil_type || '',
         nom_lieu: collecte.nom_lieu || '',
-        latitude: collecte.latitude,
-        longitude: collecte.longitude,
+        latitude: collecte.latitude || 3.848,
+        longitude: collecte.longitude || 11.502,
       });
       if (collecte.latitude && collecte.longitude) {
         setMapCenter([collecte.latitude, collecte.longitude]);

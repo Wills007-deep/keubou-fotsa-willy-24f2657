@@ -41,7 +41,11 @@ app.include_router(stats.router)
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
-    return {"status": "online", "version": "1.0.0"}
+    return {"status": "online", "version": "1.0.0", "service": "AgroAnalytics API"}
+
+@app.api_route("/api", methods=["GET", "HEAD"])
+def read_api_root():
+    return {"status": "online", "message": "AgroAnalytics API Root"}
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def health_check():
